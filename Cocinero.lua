@@ -73,7 +73,7 @@ function COOK.Log(type, nodes, ...)
     end
 
     if COOK.savedVars["internal"].debug == 1 then
-        COOK.Debug("COS: Logged [" .. type .. "] data: " .. dataStr)
+        COOK.Debug("COOK: Logged [" .. type .. "] data: " .. dataStr)
     end
 
     if #sv == 0 then
@@ -368,7 +368,7 @@ end
 --           Slash Command             --
 -----------------------------------------
 
-SLASH_COMMANDS["/cosecha"] = function (cmd)
+SLASH_COMMANDS["/cook"] = function (cmd)
     local commands = {}
     local index = 1
     for i in string.gmatch(cmd, "%S+") do
