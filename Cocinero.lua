@@ -418,12 +418,6 @@ SLASH_COMMANDS["/cook"] = function (cmd)
                         end
                     end
                 end
-            elseif type ~= "internal" then
-                for zone, t1 in pairs(COOK.savedVars[type].data) do
-                    for data, t2 in pairs(COOK.savedVars[type].data[zone]) do
-                        counter[type] = counter[type] + #COOK.savedVars[type].data[zone][data]
-                    end
-                end
             end
         end
 
