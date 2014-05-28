@@ -13,5 +13,3 @@ Displays the total number of each data type the addon has gathered.
 
 ```/rl``` & ```/reload```
 Aliases of the reloadui command
-
-

@@ -26,8 +26,8 @@ function COOK.Initialize()
         y = 0,
         subzone = ""
     }
-    --0.003
-    COOK.minDefault= 0.000009 -- 0.003^2
+    COOK.minDefault = 0.000025 -- 0.005^2
+    COOK.minContainer = 0.000009 -- 0.003^2
 end
 
 function COOK.InitSavedVariables()
@@ -122,19 +122,16 @@ function COOK.LogCheck(type, nodes, x, y, scale, name)
         dy = item[2] - y
         -- (x - center_x)2 + (y - center_y)2 = r2, where center is the player
         dist = math.pow(dx, 2) + math.pow(dy, 2)
-        if dx <= 0 and dy <= 0 then -- Dupe Node
+        -- d(string.format("distance argument : %10.7f", distance) )
+        -- d(string.format("radius : %10.7f", dist) )
+        -- d(" 1) : " .. item[1] .. " 2) : " .. item[2] .. " 3) : " .. item[3] .. " 4) : " .. tostring(item[4]))
+        if dist < distance then
             if name == nil then -- name is nil because it's not harvesting
                 log = item
             else -- harvesting only
-                if item[4] == name then
-                    log = item
-                end
-            end
-        elseif dist < distance then
-            if name == nil then -- name is nil because it's not harvesting
-                log = item
-            else -- harvesting only
-                if item[4] == name then
+                -- if item[4] == name then is for harvesting
+                if item[3] == name then -- item[3] == is for provisioning
+                    -- d("Name was the same!")
                     log = item
                 end
             end
@@ -413,15 +410,18 @@ function COOK.OnLootReceived(eventCode, receivedBy, objectName, stackCount, soun
         end
 
         if material == 5 then
-            data = COOK.LogCheck("provisioning", { subzone, material }, x, y, COOK.minDefault, targetName)
+            data = COOK.LogCheck("provisioning", { subzone, material }, x, y, COOK.minContainer, targetName)
             if not data then -- when there is no node at the given location, save a new entry
                 COOK.Log("provisioning", { subzone, material }, x, y, targetName, { {link.name, link.id, stackCount} } )
             else --otherwise add the new data to the entry
+                -- d("looking to insert!" .. targetName) 
                 if data[3] == targetName then
                     if not COOK.CheckDupeContents(data[4], link.name) then
+                        -- d("Inserted " .. link.name .. " 3) " .. data[3] .. " : Target " .. targetName) 
                         table.insert(data[4], {link.name, link.id, stackCount} )
                     end
                 else
+                    -- d("Didn't insert " .. link.name .. " 3) " .. data[3] .. " : Target " .. targetName) 
                     COOK.Log("provisioning", { subzone, material }, x, y, targetName, { {link.name, link.id, stackCount} } )
                 end
             end
