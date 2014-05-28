@@ -1,12 +1,12 @@
 <GuiXml>
     <Controls>
-        <TopLevelControl name="CocineroUi">
+        <TopLevelControl name="ProvisionerUi">
             <OnUpdate>
                 COOK.OnUpdate(time)
             </OnUpdate>
         </TopLevelControl>
 
-        <TopLevelControl name="CocineroCoordinates">
+        <TopLevelControl name="ProvisionerCoordinates">
             <OnUpdate>
                 COOK.UpdateCoordinates()
             </OnUpdate>

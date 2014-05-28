@@ -1,5 +1,5 @@
 -----------------------------------------
--- Cocinero is based off of Esohead  --
+-- Provisioner is based off of Esohead --
 -----------------------------------------
 
 COOK = {}
@@ -26,18 +26,20 @@ function COOK.Initialize()
         y = 0,
         subzone = ""
     }
+    --0.003
+    COOK.minDefault= 0.000009 -- 0.003^2
 end
 
 function COOK.InitSavedVariables()
     COOK.savedVars = {
-        ["internal"]     = ZO_SavedVars:NewAccountWide("Cocinero_SavedVariables", 1, "internal", { debug = COOK.debugDefault, language = "" }),
-        ["provisioning"] = ZO_SavedVars:NewAccountWide("Cocinero_SavedVariables", 1, "provisioning", COOK.dataDefault),
+        ["internal"]     = ZO_SavedVars:NewAccountWide("Provisioner_SavedVariables", 1, "internal", { debug = COOK.debugDefault, language = "" }),
+        ["provisioning"] = ZO_SavedVars:NewAccountWide("Provisioner_SavedVariables", 1, "provisioning", COOK.dataDefault),
     }
 
     if COOK.savedVars["internal"].debug == 1 then
-        COOK.Debug("Cocinero addon initialized. Debugging is enabled.")
+        COOK.Debug("Provisioner addon initialized. Debugging is enabled.")
     else
-        COOK.Debug("Cocinero addon initialized. Debugging is disabled.")
+        COOK.Debug("Provisioner addon initialized. Debugging is disabled.")
     end
 end
 
@@ -84,13 +86,13 @@ function COOK.Log(type, nodes, ...)
 end
 
 -- Checks if we already have an entry for the object/npc within a certain x/y distance
-function COOK.LogCheck(type, nodes, x, y, scale)
-    local log = nil
+function COOK.LogCheck(type, nodes, x, y, scale, name)
+    local log
     local sv
 
     local distance
     if scale == nil then
-        distance = 0.005
+        distance = COOK.minDefault
     else
         distance = scale
     end
@@ -116,8 +118,26 @@ function COOK.LogCheck(type, nodes, x, y, scale)
     for i = 1, #sv do
         local item = sv[i]
 
-        if math.abs(item[1] - x) < distance and math.abs(item[2] - y) < distance then
-            log = item
+        dx = item[1] - x
+        dy = item[2] - y
+        -- (x - center_x)2 + (y - center_y)2 = r2, where center is the player
+        dist = math.pow(dx, 2) + math.pow(dy, 2)
+        if dx <= 0 and dy <= 0 then -- Dupe Node
+            if name == nil then -- name is nil because it's not harvesting
+                log = item
+            else -- harvesting only
+                if item[4] == name then
+                    log = item
+                end
+            end
+        elseif dist < distance then
+            if name == nil then -- name is nil because it's not harvesting
+                log = item
+            else -- harvesting only
+                if item[4] == name then
+                    log = item
+                end
+            end
         end
     end
 
@@ -199,12 +219,12 @@ function COOK.UpdateCoordinates()
         local normalizedX = math.floor((((mouseX - currentOffsetX) / mapWidth) * 100) + 0.5)
         local normalizedY = math.floor((((mouseY - currentOffsetY) / mapHeight) * 100) + 0.5)
 
-        CocineroCoordinates:SetAlpha(0.8)
-        CocineroCoordinates:SetDrawLayer(ZO_WorldMap:GetDrawLayer() + 1)
-        CocineroCoordinates:SetAnchor(TOPLEFT, nil, TOPLEFT, parentOffsetX + 0, parentOffsetY + parentHeight)
-        CocineroCoordinatesValue:SetText("Coordinates: " .. normalizedX .. ", " .. normalizedY)
+        ProvisionerCoordinates:SetAlpha(0.8)
+        ProvisionerCoordinates:SetDrawLayer(ZO_WorldMap:GetDrawLayer() + 1)
+        ProvisionerCoordinates:SetAnchor(TOPLEFT, nil, TOPLEFT, parentOffsetX + 0, parentOffsetY + parentHeight)
+        ProvisionerCoordinatesValue:SetText("Coordinates: " .. normalizedX .. ", " .. normalizedY)
     else
-        CocineroCoordinates:SetAlpha(0)
+        ProvisionerCoordinates:SetAlpha(0)
     end
 end
 
@@ -235,6 +255,51 @@ end
 
 function COOK.GetLootEntry(index)
     return GetLootItemInfo(index)
+end
+
+-----------------------------------------
+--           Merge Nodes               --
+-----------------------------------------
+function COOK.importFromEsohead()
+    if not EH then
+        d("Please enable the Esohead addon to import data!")
+        return
+    end
+
+    COOK.Debug("EsoheadMerge Starting Import")
+    for category, data in pairs(EH.savedVars) do
+        if category ~= "internal" and category == "provisioning" then
+            for map, location in pairs(data.data) do
+                -- COOK.Debug(category .. map)
+                for itemId, nodes in pairs(location[5]) do
+                    for v1, node in pairs(nodes) do
+                        COOK.Debug("Map : " .. map .. " : Category : " .. category .. " : ItemID : " .. itemId)
+                        COOK.Debug("node : 1) " .. node[1] .. " : 2) " .. node[2] .. " : 3) " .. node[3] .. " : 4) " .. node[4])
+                        --[[
+                        dupeNode = COOK.LogCheck(category, {map, COOK.materialID, itemId}, node[1], node[2], nil, nil)
+                        if not dupeNode then
+                            COOK.Log(category, {map, COOK.materialID, itemId}, node[1], node[2], node[3], node[4])
+                        end
+
+                        data     = COOK.LogCheck(category, { map, COOK.materialID }, node[1], node[2], 0.003)
+                        if not data then -- when there is no node at the given location, save a new entry
+                            COOK.Log(category, { map, COOK.materialID }, node[1], node[2], targetName, { {link.name, itemId, stackCount} } )
+                        else --otherwise add the new data to the entry
+                            if data[3] == targetName then
+                                if not COOK.CheckDupeContents(data[4], link.name) then
+                                    table.insert(data[4], {link.name, link.id, stackCount} )
+                                end
+                            else
+                                COOK.Log(category, { map, COOK.materialID }, node[1], node[2], targetName, { {link.name, itemId, stackCount} } )
+                            end
+                        end
+                        ]]--
+                    end
+                end
+            end
+        end
+    end
+    COOK.Debug("Import Complete")
 end
 
 -----------------------------------------
@@ -348,7 +413,7 @@ function COOK.OnLootReceived(eventCode, receivedBy, objectName, stackCount, soun
         end
 
         if material == 5 then
-            data = COOK.LogCheck("provisioning", { subzone, material }, x, y, 0.003)
+            data = COOK.LogCheck("provisioning", { subzone, material }, x, y, COOK.minDefault, targetName)
             if not data then -- when there is no node at the given location, save a new entry
                 COOK.Log("provisioning", { subzone, material }, x, y, targetName, { {link.name, link.id, stackCount} } )
             else --otherwise add the new data to the entry
@@ -379,15 +444,15 @@ SLASH_COMMANDS["/cook"] = function (cmd)
     end
 
     if #commands == 0 then
-        return COOK.Debug("Please enter a valid Cocinero command")
+        return COOK.Debug("Please enter a valid Provisioner command")
     end
 
     if #commands == 2 and commands[1] == "debug" then
         if commands[2] == "on" then
-            COOK.Debug("Cocinero debugger toggled on")
+            COOK.Debug("Provisioner debugger toggled on")
             COOK.savedVars["internal"].debug = 1
         elseif commands[2] == "off" then
-            COOK.Debug("Cocinero debugger toggled off")
+            COOK.Debug("Provisioner debugger toggled off")
             COOK.savedVars["internal"].debug = 0
         end
 
@@ -440,19 +505,20 @@ end
 -----------------------------------------
 
 function COOK.OnLoad(eventCode, addOnName)
-    if addOnName ~= "Cocinero" then
+    if addOnName ~= "Provisioner" then
         return
     end
 
     COOK.language = (GetCVar("language.2") or "en")
     COOK.InitSavedVariables()
     COOK.savedVars["internal"]["language"] = COOK.language
+    COOK.materialID = 5
 
-    EVENT_MANAGER:RegisterForEvent("Cocinero", EVENT_LOOT_RECEIVED, COOK.OnLootReceived)
+    EVENT_MANAGER:RegisterForEvent("Provisioner", EVENT_LOOT_RECEIVED, COOK.OnLootReceived)
 end
 
-EVENT_MANAGER:RegisterForEvent("Cocinero", EVENT_ADD_ON_LOADED, function (eventCode, addOnName)
-    if addOnName == "Cocinero" then
+EVENT_MANAGER:RegisterForEvent("Provisioner", EVENT_ADD_ON_LOADED, function (eventCode, addOnName)
+    if addOnName == "Provisioner" then
         COOK.Initialize()
         COOK.OnLoad(eventCode, addOnName)
     end
