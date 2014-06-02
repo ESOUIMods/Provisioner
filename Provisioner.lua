@@ -18,6 +18,7 @@ function COOK.Initialize()
     COOK.time = 0
     COOK.isHarvesting = false
     COOK.action = ""
+    COOK.langs = { "en", "de", "fr", }
 
     COOK.currentConversation = {
         npcName = "",
@@ -27,7 +28,7 @@ function COOK.Initialize()
         subzone = ""
     }
     COOK.minDefault = 0.000025 -- 0.005^2
-    COOK.minContainer = 0.000009 -- 0.003^2
+    COOK.minContainer = 0.00001225 -- 0.0035^2
 end
 
 function COOK.InitSavedVariables()
@@ -168,7 +169,7 @@ function COOK.OnUpdate(time)
 
     local isHarvesting = ( active and (type == INTERACTION_HARVEST) )
     if not isHarvesting then
-        -- d("I am NOT busy! Time : " .. time)
+        -- COOK.Debug("I am NOT busy! Time : " .. time)
         if name then
             COOK.name = name -- COOK.name is the global current node
         end
@@ -181,13 +182,13 @@ function COOK.OnUpdate(time)
         if action ~= COOK.action then
             COOK.action = action -- COOK.action is the global current action
             -- if COOK.action ~= nil then
-            --     d("New Action! : " .. COOK.action .. " : " .. time)
+            --     COOK.Debug("New Action! : " .. COOK.action .. " : " .. time)
             -- end
-            -- d(COOK.action .. " : " .. GetString(SI_GAMECAMERAACTIONTYPE16))
+            -- COOK.Debug(COOK.action .. " : " .. GetString(SI_GAMECAMERAACTIONTYPE16))
 
         end -- End of {{if action ~= COOK.action then}}
     else -- End of {{if not isHarvesting then}}
-        -- d("I am REALLY busy! Time : " .. time)
+        -- COOK.Debug("I am REALLY busy! Time : " .. time)
         COOK.isHarvesting = true
         COOK.time = time
 
@@ -250,51 +251,6 @@ end
 
 function COOK.GetLootEntry(index)
     return GetLootItemInfo(index)
-end
-
------------------------------------------
---           Merge Nodes               --
------------------------------------------
-function COOK.importFromEsohead()
-    if not EH then
-        d("Please enable the Esohead addon to import data!")
-        return
-    end
-
-    COOK.Debug("EsoheadMerge Starting Import")
-    for category, data in pairs(EH.savedVars) do
-        if category ~= "internal" and category == "provisioning" then
-            for map, location in pairs(data.data) do
-                -- COOK.Debug(category .. map)
-                for itemId, nodes in pairs(location[5]) do
-                    for v1, node in pairs(nodes) do
-                        COOK.Debug("Map : " .. map .. " : Category : " .. category .. " : ItemID : " .. itemId)
-                        COOK.Debug("node : 1) " .. node[1] .. " : 2) " .. node[2] .. " : 3) " .. node[3] .. " : 4) " .. node[4])
-                        --[[
-                        dupeNode = COOK.LogCheck(category, {map, COOK.materialID, itemId}, node[1], node[2], nil, nil)
-                        if not dupeNode then
-                            COOK.Log(category, {map, COOK.materialID, itemId}, node[1], node[2], node[3], node[4])
-                        end
-
-                        data     = COOK.LogCheck(category, { map, COOK.materialID }, node[1], node[2], 0.003)
-                        if not data then -- when there is no node at the given location, save a new entry
-                            COOK.Log(category, { map, COOK.materialID }, node[1], node[2], targetName, { {link.name, itemId, stackCount} } )
-                        else --otherwise add the new data to the entry
-                            if data[3] == targetName then
-                                if not COOK.CheckDupeContents(data[4], link.name) then
-                                    table.insert(data[4], {link.name, link.id, stackCount} )
-                                end
-                            else
-                                COOK.Log(category, { map, COOK.materialID }, node[1], node[2], targetName, { {link.name, itemId, stackCount} } )
-                            end
-                        end
-                        ]]--
-                    end
-                end
-            end
-        end
-    end
-    COOK.Debug("Import Complete")
 end
 
 -----------------------------------------
@@ -372,6 +328,7 @@ end
 
 function COOK.CheckDupeContents(items, itemName)
     for _, entry in pairs( items ) do
+        COOK.Debug("Entry Found " .. entry[1] .. " Itenname : " .. itemName)
         if entry[1] == itemName then
             return true
         end
@@ -412,19 +369,104 @@ function COOK.OnLootReceived(eventCode, receivedBy, objectName, stackCount, soun
             if not data then -- when there is no node at the given location, save a new entry
                 COOK.Log("provisioning", { subzone }, x, y, targetName, { {link.name, link.id, stackCount} } )
             else --otherwise add the new data to the entry
-                -- d("looking to insert!" .. targetName) 
+                COOK.Debug("Looking to insert " .. targetName .. " into existing " .. data[3])
                 if data[3] == targetName then
                     if not COOK.CheckDupeContents(data[4], link.name) then
-                        -- d("Inserted " .. link.name .. " 3) " .. data[3] .. " : Target " .. targetName) 
+                        COOK.Debug("Inserted " .. link.name .. " from " .. targetName .. " into existing " .. data[3])
                         table.insert(data[4], {link.name, link.id, stackCount} )
                     end
                 else
-                    -- d("Didn't insert " .. link.name .. " 3) " .. data[3] .. " : Target " .. targetName) 
+                    COOK.Debug("Didn't insert " .. link.name .. " from " .. targetName .. " into existing " .. data[3])
                     COOK.Log("provisioning", { subzone }, x, y, targetName, { {link.name, link.id, stackCount} } )
                 end
             end
         end
     end
+end
+
+-----------------------------------------
+--           Merge Nodes               --
+-----------------------------------------
+function COOK.importFromEsohead()
+    if not EH then
+        COOK.Debug("Please enable the Esohead addon to import data!")
+        return
+    end
+
+    COOK.Debug("Provisioner Starting from Esohead")
+    for category, data in pairs(EH.savedVars) do
+        if category ~= "internal" and category == "provisioning" then
+            for map, location in pairs(data.data) do
+                -- COOK.Debug(category .. map)
+                for itemId, nodes in pairs(location[5]) do
+                    for index, node in pairs(nodes) do
+                        if COOK.GetTradeskillByMaterial(itemId) == 5 then
+                            --COOK.Debug("Map : " .. map .. " : Category : " .. category .. " : ItemID : " .. itemId)
+                            --COOK.Debug("node : 1) " .. node[1] .. " : 2) " .. node[2] .. " : 3) " .. node[3] .. " : 4) " .. node[4])
+                            data = COOK.LogCheck("provisioning", { map }, node[1], node[2], COOK.minContainer, node[4])
+                            itemName = "testName" --[[ COOK.GetItemNameFromItemID(id) ]]--
+                            if not data then -- when there is no node at the given location, save a new entry
+                                COOK.Log("provisioning", { map }, node[1], node[2], node[4], { {itemName, itemId, node[3]} } )
+                            else --otherwise add the new data to the entry
+                                -- COOK.Debug("looking to insert!" .. targetName)
+                                if data[3] == node[4] then
+                                    if not COOK.CheckDupeContents(data[4], itemName) then
+                                        -- COOK.Debug("Inserted " .. link.name .. " 3) " .. data[3] .. " : Target " .. targetName)
+                                        table.insert(data[4], {itemName, itemId, node[3]} )
+                                    end
+                                else
+                                    -- COOK.Debug("Didn't insert " .. link.name .. " 3) " .. data[3] .. " : Target " .. targetName)
+                                    COOK.Log("provisioning", { map }, node[1], node[2], node[4], { {itemName, itemId, node[4]} } )
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+    COOK.Debug("Import Complete")
+end
+
+function COOK.importFromEsoheadMerge()
+    if not EHM then
+        COOK.Debug("Please enable the EsoheadMerge addon to import data!")
+        return
+    end
+
+    COOK.Debug("Provisioner Starting Import from EsoheadMerge")
+    for category, data in pairs(EHM.savedVars) do
+        if category ~= "internal" and category == "provisioning" then
+            for map, location in pairs(data.data) do
+                -- COOK.Debug(category .. map)
+                for itemId, nodes in pairs(location[5]) do
+                    for index, node in pairs(nodes) do
+                        if COOK.GetTradeskillByMaterial(itemId) == 5 then
+                            --COOK.Debug("Map : " .. map .. " : Category : " .. category .. " : ItemID : " .. itemId)
+                            --COOK.Debug("node : 1) " .. node[1] .. " : 2) " .. node[2] .. " : 3) " .. node[3] .. " : 4) " .. node[4])
+                            data = COOK.LogCheck("provisioning", { map }, node[1], node[2], COOK.minContainer, node[4])
+                            itemName = "testName" --[[ COOK.GetItemNameFromItemID(id) ]]--
+                            if not data then -- when there is no node at the given location, save a new entry
+                                COOK.Log("provisioning", { map }, node[1], node[2], node[4], { {itemName, itemId, node[3]} } )
+                            else --otherwise add the new data to the entry
+                                -- COOK.Debug("looking to insert!" .. targetName)
+                                if data[3] == node[4] then
+                                    if not COOK.CheckDupeContents(data[4], itemName) then
+                                        -- COOK.Debug("Inserted " .. link.name .. " 3) " .. data[3] .. " : Target " .. targetName)
+                                        table.insert(data[4], {itemName, itemId, node[3]} )
+                                    end
+                                else
+                                    -- COOK.Debug("Didn't insert " .. link.name .. " 3) " .. data[3] .. " : Target " .. targetName)
+                                    COOK.Log("provisioning", { map }, node[1], node[2], node[4], { {itemName, itemId, node[4]} } )
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+    COOK.Debug("Import Complete")
 end
 
 -----------------------------------------
@@ -452,6 +494,14 @@ SLASH_COMMANDS["/cook"] = function (cmd)
         elseif commands[2] == "off" then
             COOK.Debug("Provisioner debugger toggled off")
             COOK.savedVars["internal"].debug = 0
+        end
+
+    elseif #commands == 2 and commands[1] == "import" then
+
+        if commands[2] == "esohead" then
+            COOK.importFromEsohead()
+        elseif commands[2] == "esomerge" then
+            COOK.importFromEsoheadMerge()
         end
 
     elseif commands[1] == "reset" then

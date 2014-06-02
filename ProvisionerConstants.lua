@@ -152,16 +152,16 @@ COOK.NodeArray = {
     [8] = {
     },
     -- :Provisioning
-    -- "Agave", "Aged meat", "Altmer rye", "Altmer wheat", "Amber malt", "Ash millet", "Asp juice", "Baker's flour", "Ballom", "Bamphor", "Barley mash", "Battaglir Weeds", "Bear haunch", "Beef", "Beets", "Bervez fruit", "Black tea", "Blackbirds", "Blood nut", "Blue crawdad", "Breton potatoes", "Broth", "Brown malt", "Bug Parts", "Buttermilk", "Cake flour", "Camaralet Grapes", "Canis root", "Capon meat", "Caramalt", "Carrots", "Chaurus", "Chaurus Eggs", "Comberries", "Comberry", "Combwort", "Concord Grapes", "Cooking fat", "Corn mash", "Crawdad", "Crystal berry", "Dagoth root", "Dark bile", "Desert heather", "Distilled gore", "Dragon fruit", "Dragon's-tongue sap", "Dragon-tongue sap", "Drippings", "Dusk beetle", "Emperor Grapes", "Fatback", "Flank steak", "Frog Legs", "Frog meat", "Frost berry", "Frosted Grapes", "Garlic", "Glace viande", "Glenumbra peach", "Glitter rock", "Goat Bits", "Goat Chunks", "Goat meat", "Golden Grapes", "Golden malt", "Grasa Grapes", "Green mash", "Green snowberry", "Groose berry", "Ground squirrel", "Guar breast", "Guar Eggs", "Guar Legs", "Hallertau Hops", "Hard Berries", "Harpy meat", "Hegathe tangerine", "Honey comb", "Hops", "Horker meat", "Imperial flour", "Imperial mash", "Imperial stock", "Jazbay Grapes", "Juniper berry", "Jus", "Kaveh Beans", "Kvatch Sweet Grapes", "Kwama Eggs", "Lard", "Liver", "Mammoth meat", "Meal", "Meat slurry", "Meaty Paws", "Medium dhufish", "Medium longfin", "Medium river betty", "Medium salmon", "Medium silverside perch", "Medium slaughterfish", "Medium spadetail", "Medium trodh", "Milled flour", "Milled wheat", "Minced horker", "Misty morn berry", "Molasses", "Moon berry", "Moon sugar", "Mountain Berries", "Mountain Grapes", "Mountain Oysters", "Mudcrab meat", "Mutton flank", "Mutton Scraps", "Nord potato", "Oak root", "Oats", "Offal", "Onion", "Ooze", "Orc fruit", "Orc Hops", "Peat Berries", "Pepper", "Pig's milk", "Pinguis", "Plump Crawlers", "Plump maggot", "Plump Maggots", "Plump Rodent Toes", "Plump Worms", "Pomegranate", "Pork", "Potato", "Rabbit Guts", "Rabbit meat", "Rasberry", "Red mushroom", "Red wheat", "Ribier Grapes", "Rice", "Ripe apple", "Rice mash", "Ripe Snowberries", "Rye", "Saaz Hops", "Salt", "Saltrice", "Saltrice bran", "Scuttle meat", "Shadow Grapes", "Shalk", "Shank", "Shein Grapes", "Shornhelm Grains", "Sifted flour", "Slime", "Slough bear meat", "Slug slime", "Small dhufish", "Small longfin", "Small river betty", "Small salmon", "Small silverside perch", "Small slaughterfish", "Small spadetail", "Small trodh", "Snake slime", "Snake venom", "Snowberry", "Soup stone", "Spalt Hops", "Spring essence", "Sugar cane", "Sugar loaf", "Sujamma Berries", "Sweetmeats", "Tangerine", "Thin broth", "Thorn apples", "Thyme", "Tomato", "Tubers", "Ungorth root", "Venison", "Viper meat", "Wasp squeezings", "Wheat mash", "White Grapes", "White malt", "Wild honey", "Wine Grapes", Wisp floss
+    -- Node name left empty because the container varies
     [9] = {
-        { itemID = 26802, nodeName = {}, itemName = {} },
-        { itemID = 26954, nodeName = {}, itemName = {} },
-        { itemID = 26962, nodeName = {}, itemName = {} },
-        { itemID = 26966, nodeName = {}, itemName = {} },
-        { itemID = 26974, nodeName = {}, itemName = {} },
+        { itemID = 26802, nodeName = {}, itemName = {"Tomato"} },
+        { itemID = 26954, nodeName = {}, itemName = {"Salt"} },
+        { itemID = 26962, nodeName = {}, itemName = {"Pepper"} },
+        { itemID = 26966, nodeName = {}, itemName = {"Drippings"} },
+        { itemID = 26974, nodeName = {}, itemName = {"Cooking Fat"} },
         { itemID = 26975, nodeName = {}, itemName = {"Suet"} },
-        { itemID = 26976, nodeName = {}, itemName = {} },
-        { itemID = 26977, nodeName = {}, itemName = {} },
+        { itemID = 26976, nodeName = {}, itemName = {"Lard"} },
+        { itemID = 26977, nodeName = {}, itemName = {"Fatback"} },
         { itemID = 26978, nodeName = {}, itemName = {} },
         { itemID = 26986, nodeName = {}, itemName = {} },
         { itemID = 26987, nodeName = {}, itemName = {} },
@@ -269,6 +269,7 @@ COOK.NodeArray = {
 }
 
 COOK.rawMaterials = {
+    -- : Mining
     [1] = {
         808,
         4482,
@@ -281,6 +282,7 @@ COOK.rawMaterials = {
         23134,
         23135,
     },
+    -- : Clothing
     [2] = {
         793,
         800,
@@ -301,6 +303,7 @@ COOK.rawMaterials = {
         33219,
         33220,
     },
+    -- : Enchanting
     [3] = {
         45806,
         45807,
@@ -370,14 +373,8 @@ COOK.rawMaterials = {
         54481,
         54482,
     },
+    -- : Alchemy
     [4] = {
-        883,
-        1187,
-        4570,
-        23265,
-        23266,
-        23267,
-        23268,
         30148,
         30149,
         30151,
@@ -397,6 +394,7 @@ COOK.rawMaterials = {
         30165,
         30166,
     },
+    -- : Provisioning
     [5] = {
         26802,
         26954,
@@ -510,6 +508,7 @@ COOK.rawMaterials = {
         45523,
         45524,
     },
+    -- : Wood
     [6] = {
         521,
         802,
@@ -522,7 +521,7 @@ COOK.rawMaterials = {
         23138,
     },
 }
-
+-- Node Names
 -- (1) Mining
 COOK.mining = {
     ["en"] = {
@@ -723,12 +722,7 @@ COOK.woodworking = {
     },
 }
 
--- 7 = Solvent: These need verification to see
--- if all of them have Solvents in then
--- 1187 Clear Water, Pure Water, Deshaan
--- 23265 Cleansed Water, Pure Water, TheRift
--- Bottles Give Beverages, but can give a Solvent like Clear Water
--- Wine Racks can give Solvent like Clear Water, needs more research
+-- 7 = Solvent
 COOK.solvent = {
     ["en"] = {
         -- "Bottle",
@@ -876,28 +870,12 @@ COOK.books = {
 }
 
 function COOK.IsValidMining(id, name)
-    local nameMatch = false
+    local nameMatch = COOK.IsValidMiningName(name)
     local itemIDMatch = false
 
     for key1, value in pairs(COOK.professions[1]) do
         if value == id then
             itemIDMatch = true
-        end
-    end
-
-    for k, v in pairs(COOK.mining["en"]) do
-        if v == name then
-            nameMatch = true
-        end
-    end
-    for k, v in pairs(COOK.mining["de"]) do
-        if v == name then
-            nameMatch = true
-        end
-    end
-    for k, v in pairs(COOK.mining["fr"]) do
-        if v == name then
-            nameMatch = true
         end
     end
 
@@ -909,28 +887,12 @@ function COOK.IsValidMining(id, name)
 end
 
 function COOK.IsValidClothing(id, name)
-    local nameMatch = false
+    local nameMatch = COOK.IsValidClothingName(name)
     local itemIDMatch = false
 
     for key1, value in pairs(COOK.professions[2]) do
         if value == id then
             itemIDMatch = true
-        end
-    end
-
-    for k, v in pairs(COOK.clothing["en"]) do
-        if v == name then
-            nameMatch = true
-        end
-    end
-    for k, v in pairs(COOK.clothing["de"]) do
-        if v == name then
-            nameMatch = true
-        end
-    end
-    for k, v in pairs(COOK.clothing["fr"]) do
-        if v == name then
-            nameMatch = true
         end
     end
 
@@ -942,28 +904,12 @@ function COOK.IsValidClothing(id, name)
 end
 
 function COOK.IsValidEnchanting(id, name)
-    local nameMatch = false
+    local nameMatch = COOK.IsValidEnchantingName(name)
     local itemIDMatch = false
 
     for key1, value in pairs(COOK.professions[3]) do
         if value == id then
             itemIDMatch = true
-        end
-    end
-
-    for k, v in pairs(COOK.enchanting["en"]) do
-        if v == name then
-            nameMatch = true
-        end
-    end
-    for k, v in pairs(COOK.enchanting["de"]) do
-        if v == name then
-            nameMatch = true
-        end
-    end
-    for k, v in pairs(COOK.enchanting["fr"]) do
-        if v == name then
-            nameMatch = true
         end
     end
 
@@ -975,28 +921,12 @@ function COOK.IsValidEnchanting(id, name)
 end
 
 function COOK.IsValidAlchemy(id, name)
-    local nameMatch = false
+    local nameMatch = COOK.IsValidAlchemyName(name)
     local itemIDMatch = false
 
     for key1, value in pairs(COOK.professions[4]) do
         if value == id then
             itemIDMatch = true
-        end
-    end
-
-    for k, v in pairs(COOK.alchemy["en"]) do
-        if v == name then
-            nameMatch = true
-        end
-    end
-    for k, v in pairs(COOK.alchemy["de"]) do
-        if v == name then
-            nameMatch = true
-        end
-    end
-    for k, v in pairs(COOK.alchemy["fr"]) do
-        if v == name then
-            nameMatch = true
         end
     end
 
@@ -1008,28 +938,12 @@ function COOK.IsValidAlchemy(id, name)
 end
 
 function COOK.IsValidWoodworking(id, name)
-    local nameMatch = false
+    local nameMatch = COOK.IsValidWoodworkingName(name)
     local itemIDMatch = false
 
     for key1, value in pairs(COOK.professions[5]) do
         if value == id then
             itemIDMatch = true
-        end
-    end
-
-    for k, v in pairs(COOK.woodworking["en"]) do
-        if v == name then
-            nameMatch = true
-        end
-    end
-    for k, v in pairs(COOK.woodworking["de"]) do
-        if v == name then
-            nameMatch = true
-        end
-    end
-    for k, v in pairs(COOK.woodworking["fr"]) do
-        if v == name then
-            nameMatch = true
         end
     end
 
@@ -1086,156 +1000,88 @@ end
 
 -- (1)Mining
 function COOK.IsValidMiningOnUpdate(name)
-    local nameMatch = false
-
-    for k, v in pairs(COOK.mining["en"]) do
-        if v == name then
-            nameMatch = true
-        end
-    end
-    for k, v in pairs(COOK.mining["de"]) do
-        if v == name then
-            nameMatch = true
-        end
-    end
-    for k, v in pairs(COOK.mining["fr"]) do
-        if v == name then
-            nameMatch = true
-        end
-    end
-
-    return nameMatch
-end
-
--- (2)Clothing
-function COOK.IsValidClothingOnUpdate(name)
-    local nameMatch = false
-
-    for k, v in pairs(COOK.clothing["en"]) do
-        if v == name then
-            nameMatch = true
-        end
-    end
-    for k, v in pairs(COOK.clothing["de"]) do
-        if v == name then
-            nameMatch = true
-        end
-    end
-    for k, v in pairs(COOK.clothing["fr"]) do
-        if v == name then
-            nameMatch = true
-        end
-    end
-
-    return nameMatch
-end
-
--- (3)Enchanting
-function COOK.IsValidEnchantingOnUpdate(name)
-    local nameMatch = false
-
-    for k, v in pairs(COOK.enchanting["en"]) do
-        if v == name then
-            nameMatch = true
-        end
-    end
-    for k, v in pairs(COOK.enchanting["de"]) do
-        if v == name then
-            nameMatch = true
-        end
-    end
-    for k, v in pairs(COOK.enchanting["fr"]) do
-        if v == name then
-            nameMatch = true
-        end
-    end
-
-    return nameMatch
-end
-
--- (4)Alchemy
-function COOK.IsValidAlchemyOnUpdate(name)
-    local nameMatch = false
-
-    for k, v in pairs(COOK.alchemy["en"]) do
-        if v == name then
-            nameMatch = true
-        end
-    end
-    for k, v in pairs(COOK.alchemy["de"]) do
-        if v == name then
-            nameMatch = true
-        end
-    end
-    for k, v in pairs(COOK.alchemy["fr"]) do
-        if v == name then
-            nameMatch = true
-        end
-    end
-
-    return nameMatch
-end
-
--- (5)Woodworking
-function COOK.IsValidWoodworkingOnUpdate(name)
-    local nameMatch = false
-
-    for k, v in pairs(COOK.woodworking["en"]) do
-        if v == name then
-            nameMatch = true
-        end
-    end
-    for k, v in pairs(COOK.woodworking["de"]) do
-        if v == name then
-            nameMatch = true
-        end
-    end
-    for k, v in pairs(COOK.woodworking["fr"]) do
-        if v == name then
-            nameMatch = true
-        end
-    end
-
-    return nameMatch
-end
-
--- (6)Container - Put Containers in 4 Alchemy just as if it were 2.2
-function COOK.IsValidContainerOnUpdate(name)
-    local nameMatch = false
-
-    for k, v in pairs(COOK.container["en"]) do
-        if v == name then
-            nameMatch = true
-        end
-    end
-    for k, v in pairs(COOK.container["de"]) do
-        if v == name then
-            nameMatch = true
-        end
-    end
-    for k, v in pairs(COOK.container["fr"]) do
-        if v == name then
-            nameMatch = true
-        end
-    end
-
-    return nameMatch
-end
-
-function COOK.IsValidSolvent(name)
-    for k, v in pairs(COOK.solvent[COOK.language]) do
-        if v == name then
-            return true
+    for lang, langs in pairs(COOK.langs) do
+        for k, v in pairs(COOK.mining[langs]) do
+            if v == name then
+                return true
+            end
         end
     end
 
     return false
 end
 
-function COOK.IsValidContainer(name)
-    for k, v in pairs(COOK.container[COOK.language]) do
-        if v == name then
-            return true
+-- (2)Clothing
+function COOK.IsValidClothingOnUpdate(name)
+    for lang, langs in pairs(COOK.langs) do
+        for k, v in pairs(COOK.clothing[langs]) do
+            if v == name then
+                return true
+            end
+        end
+    end
+
+    return false
+end
+
+-- (3)Enchanting
+function COOK.IsValidEnchantingOnUpdate(name)
+    for lang, langs in pairs(COOK.langs) do
+        for k, v in pairs(COOK.enchanting[langs]) do
+            if v == name then
+                return true
+            end
+        end
+    end
+
+    return false
+end
+
+-- (4)Alchemy
+function COOK.IsValidAlchemyOnUpdate(name)
+    for lang, langs in pairs(COOK.langs) do
+        for k, v in pairs(COOK.alchemy[langs]) do
+            if v == name then
+                return true
+            end
+        end
+    end
+
+    return false
+end
+
+-- (5)Woodworking
+function COOK.IsValidWoodworkingOnUpdate(name)
+    for lang, langs in pairs(COOK.langs) do
+        for k, v in pairs(COOK.woodworking[langs]) do
+            if v == name then
+                return true
+            end
+        end
+    end
+
+    return false
+end
+
+-- (6)Container - Put Containers in 4 Alchemy just as if it were 2.2
+function COOK.IsValidContainerOnUpdate(name)
+    for lang, langs in pairs(COOK.langs) do
+        for k, v in pairs(COOK.solvent[langs]) do
+            if v == name then
+                return true
+            end
+        end
+    end
+
+    return false
+end
+
+function COOK.IsValidSolvent(name)
+    for lang, langs in pairs(COOK.langs) do
+        for k, v in pairs(COOK.container[langs]) do
+            if v == name then
+                return true
+            end
         end
     end
 
@@ -1377,12 +1223,6 @@ function COOK.GetProfessionType(id, name)
 
     return -1
 end
-
--- local alliance = GetUnitAlliance("player")
--- valid alliance values are:
---  ALLIANCE_ALDMERI_DOMINION = 1
---  ALLIANCE_EBONHEART_PACT = 2
---  ALLIANCE_DAGGRTFALL_COVENANT = 3
 
 -----------------------------------------
 --       Esohead information           --
@@ -1706,6 +1546,17 @@ COOK.validNodes = {
     }
 }
 
+function COOK.GetItemNameFromItemID(id)
+    for tsId, tsData in pairs(COOK.NodeArray[9]) do
+        for key, value in pairs(tsData) do
+            if value.itemID == id then
+                return itemName
+            end
+        end
+    end
+    return nil
+end
+
 function COOK.GetTradeskillByMaterial(id)
     id = tonumber(id)
     local profession = 0
@@ -1731,3 +1582,8 @@ function COOK.IsValidNode(name)
     return false
 end
 
+-- local alliance = GetUnitAlliance("player")
+-- valid alliance values are:
+--  ALLIANCE_ALDMERI_DOMINION = 1
+--  ALLIANCE_EBONHEART_PACT = 2
+--  ALLIANCE_DAGGRTFALL_COVENANT = 3
