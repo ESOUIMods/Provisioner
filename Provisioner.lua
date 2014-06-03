@@ -20,21 +20,14 @@ function COOK.Initialize()
     COOK.action = ""
     COOK.langs = { "en", "de", "fr", }
 
-    COOK.currentConversation = {
-        npcName = "",
-        npcLevel = 0,
-        x = 0,
-        y = 0,
-        subzone = ""
-    }
     COOK.minDefault = 0.000025 -- 0.005^2
-    COOK.minContainer = 0.00001225 -- 0.0035^2
+    COOK.minContainer = 0.00001369 -- 0.0037^2
 end
 
 function COOK.InitSavedVariables()
     COOK.savedVars = {
         ["internal"]     = ZO_SavedVars:NewAccountWide("Provisioner_SavedVariables", 1, "internal", { debug = COOK.debugDefault, language = "" }),
-        ["provisioning"] = ZO_SavedVars:NewAccountWide("Provisioner_SavedVariables", 2, "provisioning", COOK.dataDefault),
+        ["provisioning"] = ZO_SavedVars:NewAccountWide("Provisioner_SavedVariables", 3, "provisioning", COOK.dataDefault),
     }
 
     if COOK.savedVars["internal"].debug == 1 then
@@ -345,40 +338,25 @@ function COOK.OnLootReceived(eventCode, receivedBy, objectName, stackCount, soun
         end
 
         local link = COOK.ItemLinkParse(objectName)
-        local material = COOK.GetTradeskillByMaterial(link.id)
         local x, y, a, subzone, world = COOK.GetUnitPosition("player")
-
-        -- This attempts to resolve an issue where you can loot a harvesting
-        -- node that has worms or plump worms in it and it gets recorded.
-        -- It also attempts to resolve adding non harvest nodes to harvest
-        -- such as bottles, crates, barrels, baskets, wine racks, and
-        -- heavy sacks.  Some of those containers give random items but can
-        -- also give solvents.  Heavy Sacks can contain Enchanting reagents.
-        if not COOK.isHarvesting and material >= 1 then
-            material = 5
-        elseif COOK.isHarvesting and material == 5 then
-            material = 0
-        end
-
-        if material == 0 then
+        
+        if not COOK.GetTradeskillByMaterial(link.id) then
             return
         end
 
-        if material == 5 then
-            data = COOK.LogCheck("provisioning", { subzone }, x, y, COOK.minContainer, targetName)
-            if not data then -- when there is no node at the given location, save a new entry
-                COOK.Log("provisioning", { subzone }, x, y, targetName, { {link.name, link.id, stackCount} } )
-            else --otherwise add the new data to the entry
-                COOK.Debug("Looking to insert " .. targetName .. " into existing " .. data[3])
-                if data[3] == targetName then
-                    if not COOK.CheckDupeContents(data[4], link.name) then
-                        COOK.Debug("Inserted " .. link.name .. " from " .. targetName .. " into existing " .. data[3])
-                        table.insert(data[4], {link.name, link.id, stackCount} )
-                    end
-                else
-                    COOK.Debug("Didn't insert " .. link.name .. " from " .. targetName .. " into existing " .. data[3])
-                    COOK.Log("provisioning", { subzone }, x, y, targetName, { {link.name, link.id, stackCount} } )
+        data = COOK.LogCheck("provisioning", { subzone }, x, y, COOK.minContainer, targetName)
+        if not data then -- when there is no node at the given location, save a new entry
+            COOK.Log("provisioning", { subzone }, x, y, targetName, { {link.name, link.id} } )
+        else --otherwise add the new data to the entry
+            COOK.Debug("Looking to insert " .. targetName .. " into existing " .. data[3])
+            if data[3] == targetName then
+                if not COOK.CheckDupeContents(data[4], link.name) then
+                    COOK.Debug("Inserted " .. link.name .. " from " .. targetName .. " into existing " .. data[3])
+                    table.insert(data[4], {link.name, link.id} )
                 end
+            else
+                COOK.Debug("Didn't insert " .. link.name .. " from " .. targetName .. " into existing " .. data[3])
+                COOK.Log("provisioning", { subzone }, x, y, targetName, { {link.name, link.id} } )
             end
         end
     end
