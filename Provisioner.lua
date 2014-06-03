@@ -321,7 +321,9 @@ end
 
 function COOK.CheckDupeContents(items, itemName)
     for _, entry in pairs( items ) do
-        COOK.Debug("Entry Found " .. entry[1] .. " Itenname : " .. itemName)
+        if COOK.savedVars["internal"].debug == 1 then
+            COOK.Debug("Entry Found " .. entry[1] .. " Itenname : " .. itemName)
+        end
         if entry[1] == itemName then
             return true
         end
@@ -348,14 +350,20 @@ function COOK.OnLootReceived(eventCode, receivedBy, objectName, stackCount, soun
         if not data then -- when there is no node at the given location, save a new entry
             COOK.Log("provisioning", { subzone }, x, y, targetName, { {link.name, link.id} } )
         else --otherwise add the new data to the entry
-            COOK.Debug("Looking to insert " .. targetName .. " into existing " .. data[3])
+            if COOK.savedVars["internal"].debug == 1 then
+                COOK.Debug("Looking to insert " .. targetName .. " into existing " .. data[3])
+            end
             if data[3] == targetName then
                 if not COOK.CheckDupeContents(data[4], link.name) then
-                    COOK.Debug("Inserted " .. link.name .. " from " .. targetName .. " into existing " .. data[3])
+                    if COOK.savedVars["internal"].debug == 1 then
+                        COOK.Debug("Inserted " .. link.name .. " from " .. targetName .. " into existing " .. data[3])
+                    end
                     table.insert(data[4], {link.name, link.id} )
                 end
             else
-                COOK.Debug("Didn't insert " .. link.name .. " from " .. targetName .. " into existing " .. data[3])
+                if COOK.savedVars["internal"].debug == 1 then
+                    COOK.Debug("Didn't insert " .. link.name .. " from " .. targetName .. " into existing " .. data[3])
+                end
                 COOK.Log("provisioning", { subzone }, x, y, targetName, { {link.name, link.id} } )
             end
         end
