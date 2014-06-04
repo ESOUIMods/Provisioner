@@ -1,3 +1,8 @@
+##0.1.3
+
+Bugfix
+- Duplicate node verification was too strict
+
 ##0.1.2
 
 Bugfix

@@ -6,4 +6,5 @@
 
 Provisioner.lua
 ProvisionerConstants.lua
+Localization\ProvisionerMapNames.lua
 Provisioner.xml

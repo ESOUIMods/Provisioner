@@ -27,7 +27,9 @@ end
 function COOK.InitSavedVariables()
     COOK.savedVars = {
         ["internal"]     = ZO_SavedVars:NewAccountWide("Provisioner_SavedVariables", 1, "internal", { debug = COOK.debugDefault, language = "" }),
-        ["provisioning"] = ZO_SavedVars:NewAccountWide("Provisioner_SavedVariables", 3, "provisioning", COOK.dataDefault),
+        ["provisioning"] = ZO_SavedVars:NewAccountWide("Provisioner_SavedVariables", 4, "provisioning", COOK.dataDefault),
+        ["unlocalized"] = ZO_SavedVars:NewAccountWide("Provisioner_SavedVariables", 1, "unlocalized", COOK.dataDefault),
+        ["mapnames"] = ZO_SavedVars:NewAccountWide("Provisioner_SavedVariables", 1, "mapnames", COOK.dataDefault),
     }
 
     if COOK.savedVars["internal"].debug == 1 then
@@ -156,7 +158,7 @@ function COOK.OnUpdate(time)
 
     local type = GetInteractionType()
     local active = IsPlayerInteractingWithObject()
-    local x, y, a, subzone, world = COOK.GetUnitPosition("player")
+    local x, y, a, subzone, world, texturename = COOK.GetUnitPosition("player")
     local targetType
     local action, name, interactionBlocked, additionalInfo, context = GetGameCameraInteractableActionInfo()
 
@@ -178,6 +180,9 @@ function COOK.OnUpdate(time)
             --     COOK.Debug("New Action! : " .. COOK.action .. " : " .. time)
             -- end
             -- COOK.Debug(COOK.action .. " : " .. GetString(SI_GAMECAMERAACTIONTYPE16))
+            
+            -- Save map data 
+            COOK.saveMapName(texturename, subzone, world)
 
         end -- End of {{if action ~= COOK.action then}}
     else -- End of {{if not isHarvesting then}}
@@ -193,6 +198,46 @@ end
 --            API Helpers              --
 -----------------------------------------
 
+function COOK.saveMapName(texturename, subzone, world)
+
+    local textureNameA = GetMapTileTexture()
+    local location = GetPlayerLocationName()
+    local savemapdata = true
+
+    if COOK.savedVars["mapnames"] == nil then
+        COOK.savedVars["mapnames"] = {}
+    end
+
+    if COOK.savedVars["mapnames"].data == nil then
+        COOK.savedVars["mapnames"].data = {}
+    end
+
+    data = { texturename, textureNameA, subzone , world, location }
+    for index, maps in pairs(COOK.savedVars["mapnames"].data) do
+        for _, map in pairs(maps) do
+            if texturename == index then
+                savemapdata = false
+            end
+            for i = 1, 5 do
+                if texturename == index and (data[i] ~= map[i]) then
+                    savemapdata = true
+                end
+            end
+        end
+    end
+    
+    if savemapdata then
+        if COOK.savedVars["mapnames"].data[texturename] == nil then
+            COOK.savedVars["mapnames"].data[texturename] = {}
+
+            if COOK.savedVars["mapnames"].data[texturename] then
+                --d("It was not here")
+                table.insert( COOK.savedVars["mapnames"].data[texturename], data )
+            end
+        end
+    end
+end
+
 function COOK.GetUnitPosition(tag)
     local setMap = SetMapToPlayerLocation() -- Fix for bug #23
     if setMap == 2 then
@@ -202,8 +247,21 @@ function COOK.GetUnitPosition(tag)
     local x, y, a = GetMapPlayerPosition(tag)
     local subzone = GetMapName()
     local world = GetUnitZone(tag)
+    local textureName = GetMapTileTexture()
+    textureName = string.lower(textureName)
+    textureName = string.gsub(textureName, "^.*maps/", "")
+    textureName = string.gsub(textureName, "_%d+%.dds$", "")
 
-    return x, y, a, subzone, world
+    return x, y, a, subzone, world, textureName
+end
+
+function COOK.contains(table, value)
+    for key, v in pairs(table) do
+        if v == value then
+            return key
+        end
+    end
+    return nil
 end
 
 -----------------------------------------
@@ -294,10 +352,10 @@ function COOK.CheckDupeContents(items, itemName)
     return false
 end
 
-function COOK.recordData( map, x, y, nodeName, itemName, itemId )
-    data = COOK.LogCheck("provisioning", { map }, x, y, COOK.minContainer, nodeName)
+function COOK.recordData(dataType, map, x, y, nodeName, itemName, itemId )
+    data = COOK.LogCheck(dataType, { map }, x, y, COOK.minContainer, nodeName)
     if not data then -- when there is no node at the given location, save a new entry
-        COOK.Log("provisioning", { map }, x, y, nodeName, { {itemName, itemId} } )
+        COOK.Log(dataType, { map }, x, y, nodeName, { {itemName, itemId} } )
     else --otherwise add the new data to the entry
         if COOK.savedVars["internal"].debug == 1 then
             COOK.Debug("Looking to insert " .. nodeName .. " into existing " .. data[3])
@@ -313,7 +371,7 @@ function COOK.recordData( map, x, y, nodeName, itemName, itemId )
             if COOK.savedVars["internal"].debug == 1 then
                 COOK.Debug("Didn't insert " .. itemName .. " from " .. nodeName .. " into existing " .. data[3])
             end
-            COOK.Log("provisioning", { map }, x, y, nodeName, { {itemName, itemId} } )
+            COOK.Log(dataType, { map }, x, y, nodeName, { {itemName, itemId} } )
         end
     end
 end
@@ -327,13 +385,15 @@ function COOK.OnLootReceived(eventCode, receivedBy, objectName, stackCount, soun
         end
 
         local link = COOK.ItemLinkParse(objectName)
-        local x, y, a, subzone, world = COOK.GetUnitPosition("player")
+        local x, y, a, subzone, world, texturename = COOK.GetUnitPosition("player")
+        --d("Current map " .. texturename)
+        COOK.saveMapName(texturename, subzone, world)
         
         if not COOK.GetTradeskillByMaterial(link.id) then
             return
         end
 
-        COOK.recordData( subzone, x, y, targetName, link.name, link.id )
+        COOK.recordData("provisioning", texturename, x, y, targetName, link.name, link.id )
     end
 end
 
@@ -350,12 +410,25 @@ function COOK.importFromEsohead()
     for category, data in pairs(EH.savedVars) do
         if category ~= "internal" and category == "provisioning" then
             for map, location in pairs(data.data) do
-                for itemId, nodes in pairs(location[5]) do
-                    for index, node in pairs(nodes) do
-                        -- [1] X, [2] Y, [3] Stack Size, [4] = [[Sack]]
-                        if COOK.IsValidNode(node[4]) and COOK.GetTradeskillByMaterial(itemId) then
-                            itemName = COOK.GetItemNameFromItemID(itemId)
-                            COOK.recordData( map, node[1], node[2], node[4], itemName, itemId )
+                newMapName = COOK.GetNewMapName(map)
+                if newMapName then
+                    for itemId, nodes in pairs(location[5]) do
+                        for index, node in pairs(nodes) do
+                            -- [1] X, [2] Y, [3] Stack Size, [4] = [[Sack]]
+                            if COOK.IsValidNode(node[4]) and COOK.GetTradeskillByMaterial(itemId) then
+                                itemName = COOK.GetItemNameFromItemID(itemId)
+                                COOK.recordData("provisioning", newMapName, node[1], node[2], node[4], itemName, itemId )
+                            end
+                        end
+                    end
+                else
+                    for itemId, nodes in pairs(location[5]) do
+                        for index, node in pairs(nodes) do
+                            -- [1] X, [2] Y, [3] Stack Size, [4] = [[Sack]]
+                            if COOK.IsValidNode(node[4]) and COOK.GetTradeskillByMaterial(itemId) then
+                                itemName = COOK.GetItemNameFromItemID(itemId)
+                                COOK.recordData("unlocalized", map, node[1], node[2], node[4], itemName, itemId )
+                            end
                         end
                     end
                 end
@@ -375,12 +448,25 @@ function COOK.importFromEsoheadMerge()
     for category, data in pairs(EHM.savedVars) do
         if category ~= "internal" and category == "provisioning" then
             for map, location in pairs(data.data) do
-                for itemId, nodes in pairs(location[5]) do
-                    for index, node in pairs(nodes) do
-                        -- [1] X, [2] Y, [3] Stack Size, [4] = [[Sack]]
-                        if COOK.IsValidNode(node[4]) and COOK.GetTradeskillByMaterial(itemId) then
-                            itemName = COOK.GetItemNameFromItemID(itemId)
-                            COOK.recordData( map, node[1], node[2], node[4], itemName, itemId )
+                newMapName = COOK.GetNewMapName(map)
+                if newMapName then
+                    for itemId, nodes in pairs(location[5]) do
+                        for index, node in pairs(nodes) do
+                            -- [1] X, [2] Y, [3] Stack Size, [4] = [[Sack]]
+                            if COOK.IsValidNode(node[4]) and COOK.GetTradeskillByMaterial(itemId) then
+                                itemName = COOK.GetItemNameFromItemID(itemId)
+                                COOK.recordData("provisioning", newMapName, node[1], node[2], node[4], itemName, itemId )
+                            end
+                        end
+                    end
+                else
+                    for itemId, nodes in pairs(location[5]) do
+                        for index, node in pairs(nodes) do
+                            -- [1] X, [2] Y, [3] Stack Size, [4] = [[Sack]]
+                            if COOK.IsValidNode(node[4]) and COOK.GetTradeskillByMaterial(itemId) then
+                                itemName = COOK.GetItemNameFromItemID(itemId)
+                                COOK.recordData("unlocalized", map, node[1], node[2], node[4], itemName, itemId )
+                            end
                         end
                     end
                 end
