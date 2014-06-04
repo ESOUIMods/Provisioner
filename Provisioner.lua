@@ -190,34 +190,6 @@ function COOK.OnUpdate(time)
 end
 
 -----------------------------------------
---         Coordinate System           --
------------------------------------------
-
-function COOK.UpdateCoordinates()
-    local mouseOverControl = WINDOW_MANAGER:GetMouseOverControl()
-
-    if (mouseOverControl == ZO_WorldMapContainer or mouseOverControl:GetParent() == ZO_WorldMapContainer) then
-        local currentOffsetX = ZO_WorldMapContainer:GetLeft()
-        local currentOffsetY = ZO_WorldMapContainer:GetTop()
-        local parentOffsetX = ZO_WorldMap:GetLeft()
-        local parentOffsetY = ZO_WorldMap:GetTop()
-        local mouseX, mouseY = GetUIMousePosition()
-        local mapWidth, mapHeight = ZO_WorldMapContainer:GetDimensions()
-        local parentWidth, parentHeight = ZO_WorldMap:GetDimensions()
-
-        local normalizedX = math.floor((((mouseX - currentOffsetX) / mapWidth) * 100) + 0.5)
-        local normalizedY = math.floor((((mouseY - currentOffsetY) / mapHeight) * 100) + 0.5)
-
-        ProvisionerCoordinates:SetAlpha(0.8)
-        ProvisionerCoordinates:SetDrawLayer(ZO_WorldMap:GetDrawLayer() + 1)
-        ProvisionerCoordinates:SetAnchor(TOPLEFT, nil, TOPLEFT, parentOffsetX + 0, parentOffsetY + parentHeight)
-        ProvisionerCoordinatesValue:SetText("Coordinates: " .. normalizedX .. ", " .. normalizedY)
-    else
-        ProvisionerCoordinates:SetAlpha(0)
-    end
-end
-
------------------------------------------
 --            API Helpers              --
 -----------------------------------------
 
@@ -232,18 +204,6 @@ function COOK.GetUnitPosition(tag)
     local world = GetUnitZone(tag)
 
     return x, y, a, subzone, world
-end
-
-function COOK.GetUnitName(tag)
-    return GetUnitName(tag)
-end
-
-function COOK.GetUnitLevel(tag)
-    return GetUnitLevel(tag)
-end
-
-function COOK.GetLootEntry(index)
-    return GetLootItemInfo(index)
 end
 
 -----------------------------------------
@@ -321,6 +281,9 @@ end
 
 function COOK.CheckDupeContents(items, itemName)
     for _, entry in pairs( items ) do
+        --COOK.Debug("Checking entry " .. entry[1])
+        --COOK.Debug("Against itenname : " .. itemName)
+        --COOK.Debug("1) " .. entry[1] .. "1) " .. entry[1])
         if COOK.savedVars["internal"].debug == 1 then
             COOK.Debug("Entry Found " .. entry[1] .. " Itenname : " .. itemName)
         end
@@ -329,6 +292,30 @@ function COOK.CheckDupeContents(items, itemName)
         end
     end
     return false
+end
+
+function COOK.recordData( map, x, y, nodeName, itemName, itemId )
+    data = COOK.LogCheck("provisioning", { map }, x, y, COOK.minContainer, nodeName)
+    if not data then -- when there is no node at the given location, save a new entry
+        COOK.Log("provisioning", { map }, x, y, nodeName, { {itemName, itemId} } )
+    else --otherwise add the new data to the entry
+        if COOK.savedVars["internal"].debug == 1 then
+            COOK.Debug("Looking to insert " .. nodeName .. " into existing " .. data[3])
+        end
+        if data[3] == nodeName then
+            if not COOK.CheckDupeContents(data[4], itemName) then
+                if COOK.savedVars["internal"].debug == 1 then
+                    COOK.Debug("Inserted " .. itemName .. " from " .. nodeName .. " into existing " .. data[3])
+                end
+                table.insert(data[4], {itemName, itemId} )
+            end
+        else
+            if COOK.savedVars["internal"].debug == 1 then
+                COOK.Debug("Didn't insert " .. itemName .. " from " .. nodeName .. " into existing " .. data[3])
+            end
+            COOK.Log("provisioning", { map }, x, y, nodeName, { {itemName, itemId} } )
+        end
+    end
 end
 
 function COOK.OnLootReceived(eventCode, receivedBy, objectName, stackCount, soundCategory, lootType, lootedBySelf)
@@ -346,27 +333,7 @@ function COOK.OnLootReceived(eventCode, receivedBy, objectName, stackCount, soun
             return
         end
 
-        data = COOK.LogCheck("provisioning", { subzone }, x, y, COOK.minContainer, targetName)
-        if not data then -- when there is no node at the given location, save a new entry
-            COOK.Log("provisioning", { subzone }, x, y, targetName, { {link.name, link.id} } )
-        else --otherwise add the new data to the entry
-            if COOK.savedVars["internal"].debug == 1 then
-                COOK.Debug("Looking to insert " .. targetName .. " into existing " .. data[3])
-            end
-            if data[3] == targetName then
-                if not COOK.CheckDupeContents(data[4], link.name) then
-                    if COOK.savedVars["internal"].debug == 1 then
-                        COOK.Debug("Inserted " .. link.name .. " from " .. targetName .. " into existing " .. data[3])
-                    end
-                    table.insert(data[4], {link.name, link.id} )
-                end
-            else
-                if COOK.savedVars["internal"].debug == 1 then
-                    COOK.Debug("Didn't insert " .. link.name .. " from " .. targetName .. " into existing " .. data[3])
-                end
-                COOK.Log("provisioning", { subzone }, x, y, targetName, { {link.name, link.id} } )
-            end
-        end
+        COOK.recordData( subzone, x, y, targetName, link.name, link.id )
     end
 end
 
@@ -383,33 +350,12 @@ function COOK.importFromEsohead()
     for category, data in pairs(EH.savedVars) do
         if category ~= "internal" and category == "provisioning" then
             for map, location in pairs(data.data) do
-                -- COOK.Debug(category .. map)
                 for itemId, nodes in pairs(location[5]) do
                     for index, node in pairs(nodes) do
                         -- [1] X, [2] Y, [3] Stack Size, [4] = [[Sack]]
-                        if COOK.IsValidNode(node[4]) then
+                        if COOK.IsValidNode(node[4]) and COOK.GetTradeskillByMaterial(itemId) then
                             itemName = COOK.GetItemNameFromItemID(itemId)
-                            data = COOK.LogCheck("provisioning", { map }, node[1], node[2], COOK.minContainer, node[4])
-                            if not data then -- when there is no node at the given location, save a new entry
-                                COOK.Log("provisioning", { map }, node[1], node[2], node[4], { {itemName, itemId} } )
-                            else --otherwise add the new data to the entry
-                                if COOK.savedVars["internal"].debug == 1 then
-                                    COOK.Debug("Looking to insert " .. node[4] .. " into existing " .. data[3])
-                                end
-                                if data[3] == node[4] then
-                                    if not COOK.CheckDupeContents(data[4], itemName) then
-                                        if COOK.savedVars["internal"].debug == 1 then
-                                            COOK.Debug("Inserted " .. itemName .. " from " .. node[4] .. " into existing " .. data[3])
-                                        end
-                                        table.insert(data[4], {itemName, itemId} )
-                                    end
-                                else
-                                    if COOK.savedVars["internal"].debug == 1 then
-                                        COOK.Debug("Didn't insert " .. itemName .. " from " .. node[4] .. " into existing " .. data[3])
-                                    end
-                                    COOK.Log("provisioning", { map }, node[1], node[2], node[4], { {itemName, itemId} } )
-                                end
-                            end
+                            COOK.recordData( map, node[1], node[2], node[4], itemName, itemId )
                         end
                     end
                 end
@@ -429,33 +375,12 @@ function COOK.importFromEsoheadMerge()
     for category, data in pairs(EHM.savedVars) do
         if category ~= "internal" and category == "provisioning" then
             for map, location in pairs(data.data) do
-                -- COOK.Debug(category .. map)
                 for itemId, nodes in pairs(location[5]) do
                     for index, node in pairs(nodes) do
                         -- [1] X, [2] Y, [3] Stack Size, [4] = [[Sack]]
-                        if COOK.IsValidNode(node[4]) then
+                        if COOK.IsValidNode(node[4]) and COOK.GetTradeskillByMaterial(itemId) then
                             itemName = COOK.GetItemNameFromItemID(itemId)
-                            data = COOK.LogCheck("provisioning", { map }, node[1], node[2], COOK.minContainer, node[4])
-                            if not data then -- when there is no node at the given location, save a new entry
-                                COOK.Log("provisioning", { map }, node[1], node[2], node[4], { {itemName, itemId} } )
-                            else --otherwise add the new data to the entry
-                                if COOK.savedVars["internal"].debug == 1 then
-                                    COOK.Debug("Looking to insert " .. node[4] .. " into existing " .. data[3])
-                                end
-                                if data[3] == node[4] then
-                                    if not COOK.CheckDupeContents(data[4], itemName) then
-                                        if COOK.savedVars["internal"].debug == 1 then
-                                            COOK.Debug("Inserted " .. itemName .. " from " .. node[4] .. " into existing " .. data[3])
-                                        end
-                                        table.insert(data[4], {itemName, itemId} )
-                                    end
-                                else
-                                    if COOK.savedVars["internal"].debug == 1 then
-                                        COOK.Debug("Didn't insert " .. itemName .. " from " .. node[4] .. " into existing " .. data[3])
-                                    end
-                                    COOK.Log("provisioning", { map }, node[1], node[2], node[4], { {itemName, itemId} } )
-                                end
-                            end
+                            COOK.recordData( map, node[1], node[2], node[4], itemName, itemId )
                         end
                     end
                 end
@@ -552,7 +477,6 @@ function COOK.OnLoad(eventCode, addOnName)
     COOK.language = (GetCVar("language.2") or "en")
     COOK.InitSavedVariables()
     COOK.savedVars["internal"]["language"] = COOK.language
-    COOK.materialID = 5
 
     EVENT_MANAGER:RegisterForEvent("Provisioner", EVENT_LOOT_RECEIVED, COOK.OnLootReceived)
 end

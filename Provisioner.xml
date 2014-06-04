@@ -5,17 +5,5 @@
                 COOK.OnUpdate(time)
             </OnUpdate>
         </TopLevelControl>
-
-        <TopLevelControl name="ProvisionerCoordinates">
-            <OnUpdate>
-                COOK.UpdateCoordinates()
-            </OnUpdate>
-
-            <Controls>
-                <Label name="$(parent)Value" font="ZoFontGameLargeBold" color="CFDCBD" wrapMode="ELLIPSIS" verticalAlignment="CENTER" text="">
-                    <AnchorFill />
-                </Label>
-            </Controls>
-        </TopLevelControl>
     </Controls>
 </GuiXml>
