@@ -379,30 +379,35 @@ function COOK.importFromEsohead()
         return
     end
 
-    COOK.Debug("Provisioner Starting from Esohead")
+    COOK.Debug("Provisioner starting import from Esohead")
     for category, data in pairs(EH.savedVars) do
         if category ~= "internal" and category == "provisioning" then
             for map, location in pairs(data.data) do
                 -- COOK.Debug(category .. map)
                 for itemId, nodes in pairs(location[5]) do
                     for index, node in pairs(nodes) do
-                        if COOK.GetTradeskillByMaterial(itemId) == 5 then
-                            --COOK.Debug("Map : " .. map .. " : Category : " .. category .. " : ItemID : " .. itemId)
-                            --COOK.Debug("node : 1) " .. node[1] .. " : 2) " .. node[2] .. " : 3) " .. node[3] .. " : 4) " .. node[4])
+                        -- [1] X, [2] Y, [3] Stack Size, [4] = [[Sack]]
+                        if COOK.IsValidNode(node[4]) then
+                            itemName = COOK.GetItemNameFromItemID(itemId)
                             data = COOK.LogCheck("provisioning", { map }, node[1], node[2], COOK.minContainer, node[4])
-                            itemName = "testName" --[[ COOK.GetItemNameFromItemID(id) ]]--
                             if not data then -- when there is no node at the given location, save a new entry
-                                COOK.Log("provisioning", { map }, node[1], node[2], node[4], { {itemName, itemId, node[3]} } )
+                                COOK.Log("provisioning", { map }, node[1], node[2], node[4], { {itemName, itemId} } )
                             else --otherwise add the new data to the entry
-                                -- COOK.Debug("looking to insert!" .. targetName)
+                                if COOK.savedVars["internal"].debug == 1 then
+                                    COOK.Debug("Looking to insert " .. node[4] .. " into existing " .. data[3])
+                                end
                                 if data[3] == node[4] then
                                     if not COOK.CheckDupeContents(data[4], itemName) then
-                                        -- COOK.Debug("Inserted " .. link.name .. " 3) " .. data[3] .. " : Target " .. targetName)
-                                        table.insert(data[4], {itemName, itemId, node[3]} )
+                                        if COOK.savedVars["internal"].debug == 1 then
+                                            COOK.Debug("Inserted " .. itemName .. " from " .. node[4] .. " into existing " .. data[3])
+                                        end
+                                        table.insert(data[4], {itemName, itemId} )
                                     end
                                 else
-                                    -- COOK.Debug("Didn't insert " .. link.name .. " 3) " .. data[3] .. " : Target " .. targetName)
-                                    COOK.Log("provisioning", { map }, node[1], node[2], node[4], { {itemName, itemId, node[4]} } )
+                                    if COOK.savedVars["internal"].debug == 1 then
+                                        COOK.Debug("Didn't insert " .. itemName .. " from " .. node[4] .. " into existing " .. data[3])
+                                    end
+                                    COOK.Log("provisioning", { map }, node[1], node[2], node[4], { {itemName, itemId} } )
                                 end
                             end
                         end
@@ -420,30 +425,35 @@ function COOK.importFromEsoheadMerge()
         return
     end
 
-    COOK.Debug("Provisioner Starting Import from EsoheadMerge")
+    COOK.Debug("Provisioner starting import from EsoheadMerge")
     for category, data in pairs(EHM.savedVars) do
         if category ~= "internal" and category == "provisioning" then
             for map, location in pairs(data.data) do
                 -- COOK.Debug(category .. map)
                 for itemId, nodes in pairs(location[5]) do
                     for index, node in pairs(nodes) do
-                        if COOK.GetTradeskillByMaterial(itemId) == 5 then
-                            --COOK.Debug("Map : " .. map .. " : Category : " .. category .. " : ItemID : " .. itemId)
-                            --COOK.Debug("node : 1) " .. node[1] .. " : 2) " .. node[2] .. " : 3) " .. node[3] .. " : 4) " .. node[4])
+                        -- [1] X, [2] Y, [3] Stack Size, [4] = [[Sack]]
+                        if COOK.IsValidNode(node[4]) then
+                            itemName = COOK.GetItemNameFromItemID(itemId)
                             data = COOK.LogCheck("provisioning", { map }, node[1], node[2], COOK.minContainer, node[4])
-                            itemName = "testName" --[[ COOK.GetItemNameFromItemID(id) ]]--
                             if not data then -- when there is no node at the given location, save a new entry
-                                COOK.Log("provisioning", { map }, node[1], node[2], node[4], { {itemName, itemId, node[3]} } )
+                                COOK.Log("provisioning", { map }, node[1], node[2], node[4], { {itemName, itemId} } )
                             else --otherwise add the new data to the entry
-                                -- COOK.Debug("looking to insert!" .. targetName)
+                                if COOK.savedVars["internal"].debug == 1 then
+                                    COOK.Debug("Looking to insert " .. node[4] .. " into existing " .. data[3])
+                                end
                                 if data[3] == node[4] then
                                     if not COOK.CheckDupeContents(data[4], itemName) then
-                                        -- COOK.Debug("Inserted " .. link.name .. " 3) " .. data[3] .. " : Target " .. targetName)
-                                        table.insert(data[4], {itemName, itemId, node[3]} )
+                                        if COOK.savedVars["internal"].debug == 1 then
+                                            COOK.Debug("Inserted " .. itemName .. " from " .. node[4] .. " into existing " .. data[3])
+                                        end
+                                        table.insert(data[4], {itemName, itemId} )
                                     end
                                 else
-                                    -- COOK.Debug("Didn't insert " .. link.name .. " 3) " .. data[3] .. " : Target " .. targetName)
-                                    COOK.Log("provisioning", { map }, node[1], node[2], node[4], { {itemName, itemId, node[4]} } )
+                                    if COOK.savedVars["internal"].debug == 1 then
+                                        COOK.Debug("Didn't insert " .. itemName .. " from " .. node[4] .. " into existing " .. data[3])
+                                    end
+                                    COOK.Log("provisioning", { map }, node[1], node[2], node[4], { {itemName, itemId} } )
                                 end
                             end
                         end
