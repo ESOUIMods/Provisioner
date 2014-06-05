@@ -29,7 +29,6 @@ function COOK.InitSavedVariables()
         ["internal"]     = ZO_SavedVars:NewAccountWide("Provisioner_SavedVariables", 1, "internal", { debug = COOK.debugDefault, language = "" }),
         ["provisioning"] = ZO_SavedVars:NewAccountWide("Provisioner_SavedVariables", 4, "provisioning", COOK.dataDefault),
         ["unlocalized"] = ZO_SavedVars:NewAccountWide("Provisioner_SavedVariables", 1, "unlocalized", COOK.dataDefault),
-        ["mapnames"] = ZO_SavedVars:NewAccountWide("Provisioner_SavedVariables", 1, "mapnames", COOK.dataDefault),
     }
 
     if COOK.savedVars["internal"].debug == 1 then
@@ -181,9 +180,6 @@ function COOK.OnUpdate(time)
             -- end
             -- COOK.Debug(COOK.action .. " : " .. GetString(SI_GAMECAMERAACTIONTYPE16))
             
-            -- Save map data 
-            COOK.saveMapName(texturename, subzone, world)
-
         end -- End of {{if action ~= COOK.action then}}
     else -- End of {{if not isHarvesting then}}
         -- COOK.Debug("I am REALLY busy! Time : " .. time)
@@ -197,46 +193,6 @@ end
 -----------------------------------------
 --            API Helpers              --
 -----------------------------------------
-
-function COOK.saveMapName(texturename, subzone, world)
-
-    local textureNameA = GetMapTileTexture()
-    local location = GetPlayerLocationName()
-    local savemapdata = true
-
-    if COOK.savedVars["mapnames"] == nil then
-        COOK.savedVars["mapnames"] = {}
-    end
-
-    if COOK.savedVars["mapnames"].data == nil then
-        COOK.savedVars["mapnames"].data = {}
-    end
-
-    data = { texturename, textureNameA, subzone , world, location }
-    for index, maps in pairs(COOK.savedVars["mapnames"].data) do
-        for _, map in pairs(maps) do
-            if texturename == index then
-                savemapdata = false
-            end
-            for i = 1, 5 do
-                if texturename == index and (data[i] ~= map[i]) then
-                    savemapdata = true
-                end
-            end
-        end
-    end
-    
-    if savemapdata then
-        if COOK.savedVars["mapnames"].data[texturename] == nil then
-            COOK.savedVars["mapnames"].data[texturename] = {}
-
-            if COOK.savedVars["mapnames"].data[texturename] then
-                --d("It was not here")
-                table.insert( COOK.savedVars["mapnames"].data[texturename], data )
-            end
-        end
-    end
-end
 
 function COOK.GetUnitPosition(tag)
     local setMap = SetMapToPlayerLocation() -- Fix for bug #23
@@ -386,8 +342,6 @@ function COOK.OnLootReceived(eventCode, receivedBy, objectName, stackCount, soun
 
         local link = COOK.ItemLinkParse(objectName)
         local x, y, a, subzone, world, texturename = COOK.GetUnitPosition("player")
-        --d("Current map " .. texturename)
-        COOK.saveMapName(texturename, subzone, world)
         
         if not COOK.GetTradeskillByMaterial(link.id) then
             return

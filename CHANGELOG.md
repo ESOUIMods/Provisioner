@@ -1,7 +1,7 @@
 ##0.1.3
 
-Bugfix
-- Duplicate node verification was too strict
+Features
+- Added importing From Esohead or EsoheadMerge
 
 ##0.1.2
 
