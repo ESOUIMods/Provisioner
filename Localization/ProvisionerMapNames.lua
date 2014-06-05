@@ -627,17 +627,21 @@ function COOK.blacklistMap(mapName)
 end
 
 function COOK.GetNewMapName(mapName)
-    local result = nil
-    for newMapName, translations in pairs(COOK.mapSystem) do
-        if COOK.contains(translations, mapName) then
-            if result then
-                return nil --there are more than one possible maps, skip to prevent wrong data
+    local result = nil  -- No map found yet
+
+    for newMapName, translations in pairs(COOK.mapSystem) do -- starts with ["greenshade/shroudedhollowarea1_base"] = {"Shrouded Hollow"},
+        if newMapName == mapName then  -- The mapName is already a valid texture name no need to look for one
+            return mapName
+        elseif COOK.contains(translations, mapName) then -- {"Shrouded Hollow"} was a match
+            if result then -- We FOUND some Esohead map name in "{}" so result equals a texturename already, result is no longer nil, result is a string
+                return nil -- result was a string above so return nil and halt looking at the rest of the 600 maps
             else
-                result = newMapName
+                result = newMapName -- We FOUND an Esohead style map name in "{}" so make result equal the texturename, it wasn't a texturename already
             end
         end
     end
-    return result
+    return result -- 1) Return newMapName because only one Esohead map name matched, there were no duplicates
+                  -- 2) return nil because nothing was found, and the mapName was NOT a texturename already
 end
 
 function COOK.hasNewMapName(mapName)

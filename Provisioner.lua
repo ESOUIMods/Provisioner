@@ -158,19 +158,22 @@ function COOK.OnUpdate(time)
 
     local type = GetInteractionType()
     local active = IsPlayerInteractingWithObject()
-    local x, y, a, subzone, world, texturename = COOK.GetUnitPosition("player")
-    local targetType
+    local x, y, a, world, subzone, playerLocation, textureName = COOK.GetUnitPosition("player")
     local action, name, interactionBlocked, additionalInfo, context = GetGameCameraInteractableActionInfo()
-
     local isHarvesting = ( active and (type == INTERACTION_HARVEST) )
     if not isHarvesting then
-        -- COOK.Debug("I am NOT busy! Time : " .. time)
         if name then
             COOK.name = name -- COOK.name is the global current node
         end
-
+        
         if COOK.isHarvesting and time - COOK.time > 1 then
             COOK.isHarvesting = false
+        end
+
+        if textureName ~= COOK.lastMap then
+            --d("Map Name : " .. textureName)
+            COOK.saveMapName(textureName, world, subzone, playerLocation)
+            COOK.lastMap = textureName
         end
 
         -- No reticle actions to check in this version
@@ -180,9 +183,8 @@ function COOK.OnUpdate(time)
             --     COOK.Debug("New Action! : " .. COOK.action .. " : " .. time)
             -- end
             -- COOK.Debug(COOK.action .. " : " .. GetString(SI_GAMECAMERAACTIONTYPE16))
-            
-            -- Save map data 
-            COOK.saveMapName(texturename, subzone, world)
+
+            -- Save map data
 
         end -- End of {{if action ~= COOK.action then}}
     else -- End of {{if not isHarvesting then}}
@@ -198,10 +200,8 @@ end
 --            API Helpers              --
 -----------------------------------------
 
-function COOK.saveMapName(texturename, subzone, world)
+function COOK.saveMapName(textureName, world, subzone, location)
 
-    local textureNameA = GetMapTileTexture()
-    local location = GetPlayerLocationName()
     local savemapdata = true
 
     if COOK.savedVars["mapnames"] == nil then
@@ -212,27 +212,27 @@ function COOK.saveMapName(texturename, subzone, world)
         COOK.savedVars["mapnames"].data = {}
     end
 
-    data = { texturename, textureNameA, subzone , world, location }
+    data = { world, subzone, location }
     for index, maps in pairs(COOK.savedVars["mapnames"].data) do
         for _, map in pairs(maps) do
-            if texturename == index then
+            if textureName == index then
                 savemapdata = false
             end
-            for i = 1, 5 do
-                if texturename == index and (data[i] ~= map[i]) then
+            for i = 1, 3 do
+                if textureName == index and (data[i] ~= map[i]) then
                     savemapdata = true
                 end
             end
         end
     end
-    
-    if savemapdata then
-        if COOK.savedVars["mapnames"].data[texturename] == nil then
-            COOK.savedVars["mapnames"].data[texturename] = {}
 
-            if COOK.savedVars["mapnames"].data[texturename] then
+    if savemapdata then
+        if COOK.savedVars["mapnames"].data[textureName] == nil then
+            COOK.savedVars["mapnames"].data[textureName] = {}
+
+            if COOK.savedVars["mapnames"].data[textureName] then
                 --d("It was not here")
-                table.insert( COOK.savedVars["mapnames"].data[texturename], data )
+                table.insert( COOK.savedVars["mapnames"].data[textureName], data )
             end
         end
     end
@@ -251,8 +251,15 @@ function COOK.GetUnitPosition(tag)
     textureName = string.lower(textureName)
     textureName = string.gsub(textureName, "^.*maps/", "")
     textureName = string.gsub(textureName, "_%d+%.dds$", "")
-
-    return x, y, a, subzone, world, textureName
+    
+    local playerLocation = GetPlayerLocationName()
+    local location
+    location = string.lower(playerLocation)
+    location = string.gsub(location, "%s", "")
+    location = string.gsub(location, "\'", "")
+    textureName = textureName .. "/" .. location
+    
+    return x, y, a, world, subzone, playerLocation, textureName
 end
 
 function COOK.contains(table, value)
@@ -353,9 +360,16 @@ function COOK.CheckDupeContents(items, itemName)
 end
 
 function COOK.recordData(dataType, map, x, y, nodeName, itemName, itemId )
-    data = COOK.LogCheck(dataType, { map }, x, y, COOK.minContainer, nodeName)
+    local world, subzone, location = select(3,map:find("([%w%-]+)/([%w%-]+_[%w%-]+)/([%w%-]+)"))
+    local blackListMap = world .. "\/" .. subzone
+    --d(blackListMap)
+    if COOK.blacklistMap(map) then
+        return
+    end
+
+    data = COOK.LogCheck(dataType, { world, subzone, location }, x, y, COOK.minContainer, nodeName)
     if not data then -- when there is no node at the given location, save a new entry
-        COOK.Log(dataType, { map }, x, y, nodeName, { {itemName, itemId} } )
+        COOK.Log(dataType, { world, subzone, location }, x, y, nodeName, { {itemName, itemId} } )
     else --otherwise add the new data to the entry
         if COOK.savedVars["internal"].debug == 1 then
             COOK.Debug("Looking to insert " .. nodeName .. " into existing " .. data[3])
@@ -371,7 +385,7 @@ function COOK.recordData(dataType, map, x, y, nodeName, itemName, itemId )
             if COOK.savedVars["internal"].debug == 1 then
                 COOK.Debug("Didn't insert " .. itemName .. " from " .. nodeName .. " into existing " .. data[3])
             end
-            COOK.Log(dataType, { map }, x, y, nodeName, { {itemName, itemId} } )
+            COOK.Log(dataType, { world, subzone, location }, x, y, nodeName, { {itemName, itemId} } )
         end
     end
 end
@@ -385,15 +399,15 @@ function COOK.OnLootReceived(eventCode, receivedBy, objectName, stackCount, soun
         end
 
         local link = COOK.ItemLinkParse(objectName)
-        local x, y, a, subzone, world, texturename = COOK.GetUnitPosition("player")
-        --d("Current map " .. texturename)
-        COOK.saveMapName(texturename, subzone, world)
-        
+        local x, y, a, world, subzone, playerLocation, textureName = COOK.GetUnitPosition("player")
+        COOK.saveMapName(textureName, world, subzone, playerLocation)
+
         if not COOK.GetTradeskillByMaterial(link.id) then
             return
         end
 
-        COOK.recordData("provisioning", texturename, x, y, targetName, link.name, link.id )
+        --d("Current map " .. textureName)
+        COOK.recordData("provisioning", textureName, x, y, targetName, link.name, link.id )
     end
 end
 
@@ -505,11 +519,11 @@ SLASH_COMMANDS["/cook"] = function (cmd)
 
     elseif #commands == 2 and commands[1] == "import" then
 
-        if commands[2] == "esohead" then
-            COOK.importFromEsohead()
-        elseif commands[2] == "esomerge" then
-            COOK.importFromEsoheadMerge()
-        end
+        -- if commands[2] == "esohead" then
+        --     COOK.importFromEsohead()
+        -- elseif commands[2] == "esomerge" then
+        --     COOK.importFromEsoheadMerge()
+        -- end
 
     elseif commands[1] == "reset" then
         for type,sv in pairs(COOK.savedVars) do
@@ -560,6 +574,7 @@ function COOK.OnLoad(eventCode, addOnName)
         return
     end
 
+    COOK.lastMap = ""
     COOK.language = (GetCVar("language.2") or "en")
     COOK.InitSavedVariables()
     COOK.savedVars["internal"]["language"] = COOK.language
