@@ -207,6 +207,12 @@ function COOK.GetUnitPosition(tag)
     textureName = string.lower(textureName)
     textureName = string.gsub(textureName, "^.*maps/", "")
     textureName = string.gsub(textureName, "_%d+%.dds$", "")
+    
+    if textureName == "eyevea_base" then
+        worldMapName = GetUnitZone("player")
+        worldMapName = string.lower(worldMapName)
+        textureName = worldMapName .. "/" .. textureName
+    end
 
     return x, y, a, subzone, world, textureName
 end
