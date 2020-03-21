@@ -3,6 +3,7 @@
 ## Version: 0.1.5
 ## APIVersion: 100010
 ## SavedVariables: Provisioner_SavedVariables
+## DependsOn: LibDateTime
 
 Provisioner.lua
 ProvisionerConstants.lua

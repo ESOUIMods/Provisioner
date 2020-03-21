@@ -69,10 +69,6 @@ function COOK.Log(type, nodes, ...)
         dataStr = dataStr .. "[" .. tostring(value) .. "] "
     end
 
-    if COOK.savedVars["internal"].debug == 1 then
-        COOK.Debug("COOK: Logged [" .. type .. "] data: " .. dataStr)
-    end
-
     if #sv == 0 then
         sv[1] = data
     else
@@ -81,16 +77,9 @@ function COOK.Log(type, nodes, ...)
 end
 
 -- Checks if we already have an entry for the object/npc within a certain x/y distance
-function COOK.LogCheck(type, nodes, x, y, scale, name)
+function COOK.LogCheck(type, nodes, name)
     local log
     local sv
-
-    local distance
-    if scale == nil then
-        distance = COOK.minDefault
-    else
-        distance = scale
-    end
 
     if COOK.savedVars[type] == nil or COOK.savedVars[type].data == nil then
         return nil
@@ -113,22 +102,11 @@ function COOK.LogCheck(type, nodes, x, y, scale, name)
     for i = 1, #sv do
         local item = sv[i]
 
-        dx = item[1] - x
-        dy = item[2] - y
-        -- (x - center_x)2 + (y - center_y)2 = r2, where center is the player
-        dist = math.pow(dx, 2) + math.pow(dy, 2)
-        -- both ensure that the entire table isn't parsed
-        if dist < distance then -- near or at player location
-            if name == nil then -- Unused in Provisioner : npc, quest, vendor all but harvesting
-                log = item
-            else -- Provisioning checks for name same as harvesting would
-                if item[3] == name then
-                    log = item
-                elseif item[3] ~= name then
-                    log = item
-                end
-            end
+        if item[1] == name then
+            log = item
+            -- COOK.Debug("item[1] equals the name")
         end
+
     end
 
     return log
@@ -150,17 +128,23 @@ function COOK.NumberFormat(num)
 end
 
 -- Listens for anything that is not event driven by the API but needs to be tracked
-function COOK.OnUpdate(time)
+function COOK.OnUpdate()
     if IsGameCameraUIModeActive() or IsUnitInCombat("player") then
         return
     end
 
+    --[[
     local type = GetInteractionType()
     local active = IsPlayerInteractingWithObject()
     local x, y, a, subzone, world, texturename = COOK.GetUnitPosition("player")
     local targetType
+    ]]--
     local action, name, interactionBlocked, additionalInfo, context = GetGameCameraInteractableActionInfo()
+    if name then
+        COOK.name = name -- COOK.name is the global current node
+    end
 
+    --[[
     local isHarvesting = ( active and (type == INTERACTION_HARVEST) )
     if not isHarvesting then
         -- COOK.Debug("I am NOT busy! Time : " .. time)
@@ -168,7 +152,7 @@ function COOK.OnUpdate(time)
             COOK.name = name -- COOK.name is the global current node
         end
 
-        if COOK.isHarvesting and time - COOK.time > 1 then
+        if COOK.isHarvesting and GetGameTimeMilliseconds() - COOK.time > 1 then
             COOK.isHarvesting = false
         end
 
@@ -184,10 +168,11 @@ function COOK.OnUpdate(time)
     else -- End of {{if not isHarvesting then}}
         -- COOK.Debug("I am REALLY busy! Time : " .. time)
         COOK.isHarvesting = true
-        COOK.time = time
+        COOK.time = GetGameTimeMilliseconds()
 
     -- End of Else Block
     end -- End of Else Block
+    ]]--
 end
 
 -----------------------------------------
@@ -301,12 +286,6 @@ end
 
 function COOK.CheckDupeContents(items, itemName)
     for _, entry in pairs( items ) do
-        --COOK.Debug("Checking entry " .. entry[1])
-        --COOK.Debug("Against itenname : " .. itemName)
-        --COOK.Debug("1) " .. entry[1] .. "1) " .. entry[1])
-        if COOK.savedVars["internal"].debug == 1 then
-            COOK.Debug("Entry Found " .. entry[1] .. " Itenname : " .. itemName)
-        end
         if entry[1] == itemName then
             return true
         end
@@ -314,47 +293,67 @@ function COOK.CheckDupeContents(items, itemName)
     return false
 end
 
-function COOK.recordData(dataType, map, x, y, nodeName, itemName, itemId )
-    data = COOK.LogCheck(dataType, { map }, x, y, COOK.minContainer, nodeName)
+function COOK.recordData(dataType, map, x, y, nodeName, itemLink, quantity, lootType, itemId)
+    data = COOK.LogCheck(dataType, { map }, nodeName)
     if not data then -- when there is no node at the given location, save a new entry
-        COOK.Log(dataType, { map }, x, y, nodeName, { {itemName, itemId} } )
+        if COOK.savedVars["internal"].debug == 1 then
+            COOK.Debug("Create New : " .. nodeName)
+        end
+        COOK.Log(dataType, { map }, nodeName, { {itemLink, itemId} } )
     else --otherwise add the new data to the entry
         if COOK.savedVars["internal"].debug == 1 then
-            COOK.Debug("Looking to insert " .. nodeName .. " into existing " .. data[3])
+            COOK.Debug("Looking to insert " .. itemLink .. " into: " .. nodeName)
         end
-        if data[3] == nodeName then
-            if not COOK.CheckDupeContents(data[4], itemName) then
+        if data[1] == nodeName then
+            if not COOK.CheckDupeContents(data[2], itemLink) then
                 if COOK.savedVars["internal"].debug == 1 then
-                    COOK.Debug("Inserted " .. itemName .. " from " .. nodeName .. " into existing " .. data[3])
+                    -- COOK.Debug("Inserted " .. itemName .. " from " .. nodeName .. " into existing " .. data[3])
+                    COOK.Debug("Inserted into " .. nodeName)
                 end
-                table.insert(data[4], {itemName, itemId} )
+                table.insert(data[2], {itemLink, itemId} )
+            else
+                if COOK.savedVars["internal"].debug == 1 then
+                    COOK.Debug("Entry Found " .. itemLink)
+                end
             end
         else
             if COOK.savedVars["internal"].debug == 1 then
-                COOK.Debug("Didn't insert " .. itemName .. " from " .. nodeName .. " into existing " .. data[3])
+                -- COOK.Debug("Didn't insert " .. itemName .. " from " .. nodeName .. " into existing " .. data[3])
+                COOK.Debug("Data[1] did not equal the nodename.")
+                COOK.Debug("Adding: " .. nodeName)
             end
-            COOK.Log(dataType, { map }, x, y, nodeName, { {itemName, itemId} } )
+            COOK.Log(dataType, { map }, nodeName, { {itemLink, itemId} } )
         end
     end
 end
 
-function COOK.OnLootReceived(eventCode, receivedBy, objectName, stackCount, soundCategory, lootType, lootedBySelf)
-    if not IsGameCameraUIModeActive() then
+-- integer eventCode
+-- string lootedBy
+-- string itemLink
+-- integer quantity
+-- integer itemSound
+-- lootType lootType
+-- boolean isStolen
+function COOK.OnLootReceived(eventCode, lootedBy, itemLink, quantity, itemSound, lootType, isStolen)
+    -- if not IsGameCameraUIModeActive() then
         targetName = COOK.name
 
+        --[[
         if not COOK.IsValidNode(targetName) then
             return
         end
+        ]]--
 
-        local link = COOK.ItemLinkParse(objectName)
+        local link = COOK.ItemLinkParse(itemLink)
         local x, y, a, subzone, world, texturename = COOK.GetUnitPosition("player")
         
+        --[[
         if not COOK.GetTradeskillByMaterial(link.id) then
             return
         end
-
-        COOK.recordData("provisioning", texturename, x, y, targetName, link.name, link.id )
-    end
+        ]]--
+        COOK.recordData("provisioning", texturename, x, y, targetName, itemLink, quantity, lootType, link.id)
+    -- end
 end
 
 -----------------------------------------

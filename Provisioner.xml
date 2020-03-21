@@ -2,7 +2,7 @@
     <Controls>
         <TopLevelControl name="ProvisionerUi">
             <OnUpdate>
-                COOK.OnUpdate(time)
+                COOK.OnUpdate()
             </OnUpdate>
         </TopLevelControl>
     </Controls>
