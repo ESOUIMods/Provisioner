@@ -2,7 +2,23 @@
 -- Provisioner is based off of Esohead --
 -----------------------------------------
 
+-----------------------------------------
+--             Constants               --
+-----------------------------------------
+
 COOK = {}
+WRONG_INTERACTION_TYPE = "WrongInteractionType"
+
+ignored_interaction_types = {
+    [INTERACTION_VENDOR]=true,
+    [INTERACTION_STORE]=true,
+    [INTERACTION_QUEST]=true,
+    [INTERACTION_MAIL]=true,
+    [INTERACTION_GUILDBANK]=true,
+    [INTERACTION_CRAFT]=true,
+    [INTERACTION_STORE]=true,
+    [INTERACTION_BANK]=true
+}
 
 -----------------------------------------
 --           Core Functions            --
@@ -140,10 +156,12 @@ function COOK.OnUpdate()
     local targetType
     ]]--
     local action, name, interactionBlocked, additionalInfo, context = GetGameCameraInteractableActionInfo()
-    if name then
+    if name and GetGameTimeMilliseconds() - COOK.time > 1 then
         COOK.name = name -- COOK.name is the global current node
+    else
+        COOK.time = GetGameTimeMilliseconds()
+        COOK.name = WRONG_INTERACTION_TYPE -- COOK.name is the global current node
     end
-
     --[[
     local isHarvesting = ( active and (type == INTERACTION_HARVEST) )
     if not isHarvesting then
@@ -178,6 +196,36 @@ end
 -----------------------------------------
 --            API Helpers              --
 -----------------------------------------
+function COOK.InventoryChanged(eventCode, bagId, slotIndex, isNewItem, itemSoundCategory, updateReason, stackCountChange)
+    targetName = COOK.name
+    local type_of_action = GetInteractionType()
+    if updateReason == INVENTORY_UPDATE_REASON_ITEM_CHARGE then return end
+    if updateReason == INVENTORY_UPDATE_REASON_DURABILITY_CHANGE then return end
+    if ignored_interaction_types[type_of_action] then 
+        targetName = WRONG_INTERACTION_TYPE
+    end
+    -- COOK.Debug("NEW IC: My action check says: " .. type_of_action)
+    -- local active = IsPlayerInteractingWithObject()
+    -- COOK.Debug("NEW IC: Am I active: ")
+    -- COOK.Debug(active)
+    if targetName == WRONG_INTERACTION_TYPE then return end
+    COOK.Debug("NEW IC: I made it to here and the interaction type was " .. type_of_action)
+
+    if SHARED_INVENTORY:AreAnyItemsNew(nil, nil, BAG_BACKPACK, BAG_VIRTUAL) then
+        local itemLink = GetItemLink(bagId, slotIndex)
+        local link = COOK.ItemLinkParse(itemLink)
+        local x, y, a, subzone, world, texturename = COOK.GetUnitPosition("player")
+        COOK.recordData("provisioning", texturename, x, y, targetName, itemLink, stackCountChange, link.id)
+        if COOK.savedVars["internal"].debug == 1 then
+            COOK.Debug("NEW IC: Picked up a " .. itemLink .. " and I picked up " .. stackCountChange)
+            COOK.Debug("NEW IC: However the event code was " .. eventCode .. " and the reason was " .. updateReason)
+        end
+    else
+        if COOK.savedVars["internal"].debug == 1 then
+            COOK.Debug("NEW IC: Something changed but it was not a new item.")
+        end
+    end
+end
 
 function COOK.GetUnitPosition(tag)
     local setMap = SetMapToPlayerLocation() -- Fix for bug #23
@@ -293,7 +341,10 @@ function COOK.CheckDupeContents(items, itemName)
     return false
 end
 
-function COOK.recordData(dataType, map, x, y, nodeName, itemLink, quantity, lootType, itemId)
+function COOK.recordData(dataType, map, x, y, nodeName, itemLink, quantity, itemId)
+    if COOK.savedVars["internal"].debug == 1 then
+        COOK.Debug("Looted : " .. itemLink .. " ftom: " .. nodeName)
+    end
     data = COOK.LogCheck(dataType, { map }, nodeName)
     if not data then -- when there is no node at the given location, save a new entry
         if COOK.savedVars["internal"].debug == 1 then
@@ -523,7 +574,8 @@ function COOK.OnLoad(eventCode, addOnName)
     COOK.InitSavedVariables()
     COOK.savedVars["internal"]["language"] = COOK.language
 
-    EVENT_MANAGER:RegisterForEvent("Provisioner", EVENT_LOOT_RECEIVED, COOK.OnLootReceived)
+    -- EVENT_MANAGER:RegisterForEvent("Provisioner", EVENT_LOOT_RECEIVED, COOK.OnLootReceived)
+    EVENT_MANAGER:RegisterForEvent("Provisioner", EVENT_INVENTORY_SINGLE_SLOT_UPDATE, COOK.InventoryChanged)
 end
 
 EVENT_MANAGER:RegisterForEvent("Provisioner", EVENT_ADD_ON_LOADED, function (eventCode, addOnName)
