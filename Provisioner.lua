@@ -17,7 +17,8 @@ ignored_interaction_types = {
     [INTERACTION_GUILDBANK]=true,
     [INTERACTION_CRAFT]=true,
     [INTERACTION_STORE]=true,
-    [INTERACTION_BANK]=true
+    [INTERACTION_BANK]=true,
+    [INTERACTION_CONVERSATION]=true
 }
 
 -----------------------------------------
@@ -143,55 +144,17 @@ function COOK.NumberFormat(num)
     return formatted
 end
 
--- Listens for anything that is not event driven by the API but needs to be tracked
-function COOK.OnUpdate()
-    if IsGameCameraUIModeActive() or IsUnitInCombat("player") then
-        return
-    end
-
-    --[[
-    local type = GetInteractionType()
-    local active = IsPlayerInteractingWithObject()
-    local x, y, a, subzone, world, texturename = COOK.GetUnitPosition("player")
-    local targetType
-    ]]--
-    local action, name, interactionBlocked, additionalInfo, context = GetGameCameraInteractableActionInfo()
-    if name and GetGameTimeMilliseconds() - COOK.time > 1 then
-        COOK.name = name -- COOK.name is the global current node
+ZO_PreHook(ZO_Reticle, "TryHandlingInteraction", function(interactionPossible, currentFrameTimeSeconds)
+	
+    action, name, interactBlocked, isOwned, additionalInfo, contextualInfo, contextualLink, isCriminalInteract = GetGameCameraInteractableActionInfo()
+    if name then
+        -- COOK.Debug("I am looking at name " .. name)
+        COOK.name = name
     else
-        COOK.time = GetGameTimeMilliseconds()
-        COOK.name = WRONG_INTERACTION_TYPE -- COOK.name is the global current node
+        -- COOK.Debug("I am not looking at somethinge ")
+        COOK.name = WRONG_INTERACTION_TYPE
     end
-    --[[
-    local isHarvesting = ( active and (type == INTERACTION_HARVEST) )
-    if not isHarvesting then
-        -- COOK.Debug("I am NOT busy! Time : " .. time)
-        if name then
-            COOK.name = name -- COOK.name is the global current node
-        end
-
-        if COOK.isHarvesting and GetGameTimeMilliseconds() - COOK.time > 1 then
-            COOK.isHarvesting = false
-        end
-
-        -- No reticle actions to check in this version
-        if action ~= COOK.action then
-            COOK.action = action -- COOK.action is the global current action
-            -- if COOK.action ~= nil then
-            --     COOK.Debug("New Action! : " .. COOK.action .. " : " .. time)
-            -- end
-            -- COOK.Debug(COOK.action .. " : " .. GetString(SI_GAMECAMERAACTIONTYPE16))
-            
-        end -- End of {{if action ~= COOK.action then}}
-    else -- End of {{if not isHarvesting then}}
-        -- COOK.Debug("I am REALLY busy! Time : " .. time)
-        COOK.isHarvesting = true
-        COOK.time = GetGameTimeMilliseconds()
-
-    -- End of Else Block
-    end -- End of Else Block
-    ]]--
-end
+end)
 
 -----------------------------------------
 --            API Helpers              --
@@ -199,17 +162,20 @@ end
 function COOK.InventoryChanged(eventCode, bagId, slotIndex, isNewItem, itemSoundCategory, updateReason, stackCountChange)
     targetName = COOK.name
     local type_of_action = GetInteractionType()
+    if COOK.savedVars["internal"].debug == 1 then
+        COOK.Debug("CHECK: Target name " .. targetName .. " interaction type was " .. type_of_action)
+        COOK.Debug("CHECK: update reason " .. updateReason)
+    end
     if updateReason == INVENTORY_UPDATE_REASON_ITEM_CHARGE then return end
     if updateReason == INVENTORY_UPDATE_REASON_DURABILITY_CHANGE then return end
+    -- note to self, if I wanted to track quest rewards they are conversations
     if ignored_interaction_types[type_of_action] then 
         targetName = WRONG_INTERACTION_TYPE
     end
-    -- COOK.Debug("NEW IC: My action check says: " .. type_of_action)
-    -- local active = IsPlayerInteractingWithObject()
-    -- COOK.Debug("NEW IC: Am I active: ")
-    -- COOK.Debug(active)
     if targetName == WRONG_INTERACTION_TYPE then return end
-    COOK.Debug("NEW IC: I made it to here and the interaction type was " .. type_of_action)
+    if COOK.savedVars["internal"].debug == 1 then
+        COOK.Debug("NEW IC: I made it to here and the interaction type was " .. type_of_action)
+    end
 
     if SHARED_INVENTORY:AreAnyItemsNew(nil, nil, BAG_BACKPACK, BAG_VIRTUAL) then
         local itemLink = GetItemLink(bagId, slotIndex)
@@ -378,35 +344,6 @@ function COOK.recordData(dataType, map, x, y, nodeName, itemLink, quantity, item
     end
 end
 
--- integer eventCode
--- string lootedBy
--- string itemLink
--- integer quantity
--- integer itemSound
--- lootType lootType
--- boolean isStolen
-function COOK.OnLootReceived(eventCode, lootedBy, itemLink, quantity, itemSound, lootType, isStolen)
-    -- if not IsGameCameraUIModeActive() then
-        targetName = COOK.name
-
-        --[[
-        if not COOK.IsValidNode(targetName) then
-            return
-        end
-        ]]--
-
-        local link = COOK.ItemLinkParse(itemLink)
-        local x, y, a, subzone, world, texturename = COOK.GetUnitPosition("player")
-        
-        --[[
-        if not COOK.GetTradeskillByMaterial(link.id) then
-            return
-        end
-        ]]--
-        COOK.recordData("provisioning", texturename, x, y, targetName, itemLink, quantity, lootType, link.id)
-    -- end
-end
-
 -----------------------------------------
 --           Merge Nodes               --
 -----------------------------------------
@@ -536,6 +473,13 @@ SLASH_COMMANDS["/cook"] = function (cmd)
         COOK.Debug("---")
 
         local counter = {
+            ["map"] = 0,
+            ["nodes"] = 0,
+            ["item"] = 0,
+        }
+
+        --[[
+        local counter = {
             ["provisioning"] = 0,
         }
 
@@ -546,8 +490,27 @@ SLASH_COMMANDS["/cook"] = function (cmd)
                 end
             end
         end
+        --]]
 
-        COOK.Debug("Provisioning: "     .. COOK.NumberFormat(counter["provisioning"]))
+        for category, data in pairs(COOK.savedVars) do
+            if category ~= "internal" and category == "provisioning" then
+                for map, nodes in pairs(data.data) do
+                    -- Inc Map Count COOK.Debug(map)
+                    for n, node in pairs(nodes) do
+                        local name = node[1]
+                        local items = node[2]
+                        -- Inc Node Count COOK.Debug("Node Name " .. name)
+                        for i, item in pairs(items) do
+                            -- Inc Item Count COOK.Debug(item[1])
+                        end
+                    end
+                end
+            end
+        end
+
+        COOK.Debug("map: "     .. COOK.NumberFormat(counter["map"]))
+        COOK.Debug("nodes: "     .. COOK.NumberFormat(counter["nodes"]))
+        COOK.Debug("item: "     .. COOK.NumberFormat(counter["item"]))
 
         COOK.Debug("---")
     end
@@ -574,7 +537,6 @@ function COOK.OnLoad(eventCode, addOnName)
     COOK.InitSavedVariables()
     COOK.savedVars["internal"]["language"] = COOK.language
 
-    -- EVENT_MANAGER:RegisterForEvent("Provisioner", EVENT_LOOT_RECEIVED, COOK.OnLootReceived)
     EVENT_MANAGER:RegisterForEvent("Provisioner", EVENT_INVENTORY_SINGLE_SLOT_UPDATE, COOK.InventoryChanged)
 end
 
