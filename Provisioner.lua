@@ -8,6 +8,7 @@
 
 COOK = {}
 WRONG_INTERACTION_TYPE = "WrongInteractionType"
+local LMP = LibMapPins
 
 ignored_interaction_types = {
     [INTERACTION_VENDOR]=true,
@@ -19,6 +20,15 @@ ignored_interaction_types = {
     [INTERACTION_STORE]=true,
     [INTERACTION_BANK]=true,
     [INTERACTION_CONVERSATION]=true
+}
+
+ignored_tagets = {
+    ["Clothier Delivery Crate"]=true,
+    ["Blacksmith Delivery Crate"]=true,
+    ["Woodworker Delivery Crate"]=true,
+    ["Provisioner Delivery Crate"]=true,
+    ["Enchanter Delivery Crate"]=true,
+    ["Alchemist Delivery Crate"]=true
 }
 
 -----------------------------------------
@@ -45,6 +55,7 @@ function COOK.InitSavedVariables()
     COOK.savedVars = {
         ["internal"]     = ZO_SavedVars:NewAccountWide("Provisioner_SavedVariables", 1, "internal", { debug = COOK.debugDefault, language = "" }),
         ["provisioning"] = ZO_SavedVars:NewAccountWide("Provisioner_SavedVariables", 4, "provisioning", COOK.dataDefault),
+        ["vendor"]       = ZO_SavedVars:NewAccountWide("Provisioner_SavedVariables", 2, "vendor", COOK.dataDefault),
         ["unlocalized"] = ZO_SavedVars:NewAccountWide("Provisioner_SavedVariables", 1, "unlocalized", COOK.dataDefault),
     }
 
@@ -54,6 +65,118 @@ function COOK.InitSavedVariables()
         COOK.Debug("Provisioner addon initialized. Debugging is disabled.")
     end
 end
+
+---
+-- vendor
+---
+
+-- Checks if we already have an entry for the object/npc within a certain x/y distance
+function COOK.VendLogCheck(type, nodes, x, y, scale, name)
+    local log = true
+    local sv
+
+    if x <= 0 or y <= 0 then
+        return false
+    end
+
+    if COOK.savedVars[type] == nil or COOK.savedVars[type].data == nil then
+        return true
+    else
+        sv = COOK.savedVars[type].data
+    end
+
+    local distance
+    if scale == nil then
+        distance = COOK.minDefault
+    else
+        distance = scale
+    end
+
+    for i = 1, #nodes do
+        local node = nodes[i];
+        if string.find(node, '\"') then
+            node = string.gsub(node, '\"', '\'')
+        end
+
+        if sv[node] == nil then
+            sv[node] = {}
+        end
+        sv = sv[node]
+    end
+
+    for i = 1, #sv do
+        local item = sv[i]
+
+        dx = item[1] - x
+        dy = item[2] - y
+        -- (x - center_x)2 + (y - center_y)2 = r2, where center is the player
+        dist = math.pow(dx, 2) + math.pow(dy, 2)
+        -- both ensure that the entire table isn't parsed
+        -- item[3] is Vendor Name
+        if item[3] == name then -- regardless of loc, don't duplicate the Vendor
+            return false
+        end
+        -- if dist < distance then -- near player location
+        --     if name == nil then -- npc, quest, vendor all but harvesting
+        --         return false
+        --     else -- harvesting only
+        --         if item[3] == name then
+        --             return false
+        --         elseif item[3] ~= name then
+        --             return true
+        --         end
+        --     end
+        -- end
+    end
+
+    return log
+end
+
+function COOK.VendLog(type, nodes, ...)
+    local data = {}
+    local dataStr = ""
+    local sv
+
+    if COOK.savedVars[type] == nil or COOK.savedVars[type].data == nil then
+        COOK.Debug("Attempted to log unknown type: " .. type)
+        return
+    else
+        sv = COOK.savedVars[type].data
+    end
+
+    for i = 1, #nodes do
+        local node = nodes[i];
+        if string.find(node, '\"') then
+            node = string.gsub(node, '\"', '\'')
+        end
+
+        if sv[node] == nil then
+            sv[node] = {}
+        end
+        sv = sv[node]
+    end
+
+    for i = 1, select("#", ...) do
+        local value = select(i, ...)
+        data[i] = value
+        dataStr = dataStr .. "[" .. tostring(value) .. "] "
+    end
+
+    if COOK.savedVars["internal"].debug == 1 then
+        COOK.Debug("Logged [" .. type .. "] data: " .. dataStr)
+        COOK.Debug("For [" .. COOK.name .. "]")
+    end
+
+    if #sv == 0 then
+        sv[1] = data
+    else
+        sv[#sv+1] = data
+    end
+end
+
+---
+-- other
+---
 
 -- Logs saved variables
 function COOK.Log(type, nodes, ...)
@@ -147,7 +270,7 @@ end
 ZO_PreHook(ZO_Reticle, "TryHandlingInteraction", function(interactionPossible, currentFrameTimeSeconds)
 	
     action, name, interactBlocked, isOwned, additionalInfo, contextualInfo, contextualLink, isCriminalInteract = GetGameCameraInteractableActionInfo()
-    if name then
+    if name and not ignored_interaction_types[action] and not ignored_tagets[name] then
         -- COOK.Debug("I am looking at name " .. name)
         COOK.name = name
     else
@@ -163,13 +286,20 @@ function COOK.InventoryChanged(eventCode, bagId, slotIndex, isNewItem, itemSound
     targetName = COOK.name
     local type_of_action = GetInteractionType()
     if COOK.savedVars["internal"].debug == 1 then
-        COOK.Debug("CHECK: Target name " .. targetName .. " interaction type was " .. type_of_action)
-        COOK.Debug("CHECK: update reason " .. updateReason)
+        COOK.Debug("CHECK Target name: " .. targetName .. " interaction type was " .. type_of_action)
+        COOK.Debug("CHECK Update reason: " .. updateReason)
     end
+
     if updateReason == INVENTORY_UPDATE_REASON_ITEM_CHARGE then return end
     if updateReason == INVENTORY_UPDATE_REASON_DURABILITY_CHANGE then return end
     -- note to self, if I wanted to track quest rewards they are conversations
     if ignored_interaction_types[type_of_action] then 
+        targetName = WRONG_INTERACTION_TYPE
+    end
+    if ignored_tagets[targetName] then
+        if COOK.savedVars["internal"].debug == 1 then
+            COOK.Debug("IGNORE: I made it to here and was one of the writ crates!")
+        end
         targetName = WRONG_INTERACTION_TYPE
     end
     if targetName == WRONG_INTERACTION_TYPE then return end
@@ -202,10 +332,7 @@ function COOK.GetUnitPosition(tag)
     local x, y, a = GetMapPlayerPosition(tag)
     local subzone = GetMapName()
     local world = GetUnitZone(tag)
-    local textureName = GetMapTileTexture()
-    textureName = string.lower(textureName)
-    textureName = string.gsub(textureName, "^.*maps/", "")
-    textureName = string.gsub(textureName, "_%d+%.dds$", "")
+    textureName = LMP:GetZoneAndSubzone(true)
     
     if textureName == "eyevea_base" then
         worldMapName = GetUnitZone("player")
@@ -341,6 +468,47 @@ function COOK.recordData(dataType, map, x, y, nodeName, itemLink, quantity, item
             end
             COOK.Log(dataType, { map }, nodeName, { {itemLink, itemId} } )
         end
+    end
+end
+
+
+-----------------------------------------
+--          Vendor Tracking            --
+-----------------------------------------
+
+function COOK.VendorOpened()
+    local x, y, a, subzone, world, texturename = COOK.GetUnitPosition("player")
+
+    dataType = "vendor"
+
+    local storeItems = {}
+
+    if COOK.VendLogCheck(dataType, { texturename }, x, y, 0.1, COOK.name) then
+        for entryIndex = 1, GetNumStoreItems() do
+            local icon, name, stack, price, sellPrice, meetsRequirementsToBuy, meetsRequirementsToEquip, quality, questNameColor, currencyType1, currencyId1, currencyQuantity1, currencyIcon1,
+            currencyName1, currencyType2, currencyId2, currencyQuantity2, currencyIcon2, currencyName2 = GetStoreEntryInfo(entryIndex)
+
+            if(stack > 0) then
+            local itemData =
+            {
+                name,
+                stack,
+                price,
+                quality,
+                questNameColor,
+                currencyType1,
+                currencyQuantity1,
+                currencyType2,
+                currencyQuantity2,
+                { GetStoreEntryTypeInfo(entryIndex) },
+                GetStoreEntryStatValue(entryIndex),
+                }
+
+                storeItems[#storeItems + 1] = itemData
+            end
+        end
+
+        COOK.VendLog(dataType, { texturename }, x, y, COOK.name, storeItems)
     end
 end
 
@@ -538,6 +706,7 @@ function COOK.OnLoad(eventCode, addOnName)
     COOK.savedVars["internal"]["language"] = COOK.language
 
     EVENT_MANAGER:RegisterForEvent("Provisioner", EVENT_INVENTORY_SINGLE_SLOT_UPDATE, COOK.InventoryChanged)
+    EVENT_MANAGER:RegisterForEvent("Provisioner", EVENT_OPEN_STORE, COOK.VendorOpened)
 end
 
 EVENT_MANAGER:RegisterForEvent("Provisioner", EVENT_ADD_ON_LOADED, function (eventCode, addOnName)
