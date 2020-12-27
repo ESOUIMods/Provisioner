@@ -41,7 +41,7 @@ function COOK.Initialize()
     COOK.dataDefault = {
         data = {}
     }
-    COOK.name = ""
+    --COOK.name = ""
     COOK.time = 0
     COOK.isHarvesting = false
     COOK.action = ""
@@ -161,10 +161,11 @@ function COOK.VendLog(type, nodes, ...)
         data[i] = value
         dataStr = dataStr .. "[" .. tostring(value) .. "] "
     end
-
+    
+    -- data[3] is the target name
     if COOK.savedVars["internal"].debug == 1 then
         COOK.Debug("Logged [" .. type .. "] data: " .. dataStr)
-        COOK.Debug("For [" .. COOK.name .. "]")
+        COOK.Debug("For [" .. data[3] .. "]")
     end
 
     if #sv == 0 then
@@ -266,10 +267,14 @@ function COOK.NumberFormat(num)
 
     return formatted
 end
-
+--[[
 ZO_PreHook(ZO_Reticle, "TryHandlingInteraction", function(interactionPossible, currentFrameTimeSeconds)
 	
     action, name, interactBlocked, isOwned, additionalInfo, contextualInfo, contextualLink, isCriminalInteract = GetGameCameraInteractableActionInfo()
+    local type_of_action = GetInteractionType()
+    if type_of_action ~= 0 then
+        d(type_of_action)
+    end
     if name and not ignored_interaction_types[action] and not ignored_tagets[name] then
         -- COOK.Debug("I am looking at name " .. name)
         COOK.name = name
@@ -279,11 +284,33 @@ ZO_PreHook(ZO_Reticle, "TryHandlingInteraction", function(interactionPossible, c
     end
 end)
 
+local function OnInteract(event_code, client_interact_result, interact_target_name)
+    d("Provisioner")
+    d(event_code)
+    d(client_interact_result)
+    text = zo_strformat(SI_CHAT_MESSAGE_FORMATTER, interact_target_name)
+    d(text)
+    d("Provisioner Camera Interact")
+    action, name, interactBlocked, isOwned, additionalInfo, contextualInfo, contextualLink, isCriminalInteract = GetGameCameraInteractableActionInfo()
+    d(action)
+    text = zo_strformat(SI_CHAT_MESSAGE_FORMATTER, name)
+    d(text)
+    d(interactBlocked)
+    d(additionalInfo)
+    d("Provisioner Interaction Type")
+    interaction_type = GetInteractionType()
+    d(interaction_type)
+    d("OnInteract End")
+end
+EVENT_MANAGER:RegisterForEvent(AddonName,EVENT_CLIENT_INTERACT_RESULT, OnInteract)
+]]--
+
 -----------------------------------------
 --            API Helpers              --
 -----------------------------------------
 function COOK.InventoryChanged(eventCode, bagId, slotIndex, isNewItem, itemSoundCategory, updateReason, stackCountChange)
-    targetName = COOK.name
+    _, targetName, _, _, _, _, _, _ = GetGameCameraInteractableActionInfo()
+    -- targetName = COOK.name
     local type_of_action = GetInteractionType()
     if COOK.savedVars["internal"].debug == 1 then
         COOK.Debug("CHECK Target name: " .. targetName .. " interaction type was " .. type_of_action)
@@ -482,8 +509,10 @@ function COOK.VendorOpened()
     dataType = "vendor"
 
     local storeItems = {}
+    
+    _, targetName, _, _, _, _, _, _ = GetGameCameraInteractableActionInfo()
 
-    if COOK.VendLogCheck(dataType, { texturename }, x, y, 0.1, COOK.name) then
+    if COOK.VendLogCheck(dataType, { texturename }, x, y, 0.1, targetName) then
         for entryIndex = 1, GetNumStoreItems() do
             local icon, name, stack, price, sellPrice, meetsRequirementsToBuy, meetsRequirementsToEquip, quality, questNameColor, currencyType1, currencyId1, currencyQuantity1, currencyIcon1,
             currencyName1, currencyType2, currencyId2, currencyQuantity2, currencyIcon2, currencyName2 = GetStoreEntryInfo(entryIndex)
@@ -508,7 +537,7 @@ function COOK.VendorOpened()
             end
         end
 
-        COOK.VendLog(dataType, { texturename }, x, y, COOK.name, storeItems)
+        COOK.VendLog(dataType, { texturename }, x, y, targetName, storeItems)
     end
 end
 
