@@ -161,7 +161,7 @@ function COOK.VendLog(type, nodes, ...)
         data[i] = value
         dataStr = dataStr .. "[" .. tostring(value) .. "] "
     end
-    
+
     -- data[3] is the target name
     if COOK.savedVars["internal"].debug == 1 then
         COOK.Debug("Logged [" .. type .. "] data: " .. dataStr)
@@ -269,14 +269,14 @@ function COOK.NumberFormat(num)
 end
 --[[
 ZO_PreHook(ZO_Reticle, "TryHandlingInteraction", function(interactionPossible, currentFrameTimeSeconds)
-	
+
     action, name, interactBlocked, isOwned, additionalInfo, contextualInfo, contextualLink, isCriminalInteract = GetGameCameraInteractableActionInfo()
     local type_of_action = GetInteractionType()
     if type_of_action ~= 0 then
         d(type_of_action)
     end
     if name and not ignored_interaction_types[action] and not ignored_tagets[name] then
-        -- COOK.Debug("I am looking at name " .. name)
+        COOK.Debug("I am looking at name " .. name)
         COOK.name = name
     else
         -- COOK.Debug("I am not looking at somethinge ")
@@ -320,7 +320,7 @@ function COOK.InventoryChanged(eventCode, bagId, slotIndex, isNewItem, itemSound
     if updateReason == INVENTORY_UPDATE_REASON_ITEM_CHARGE then return end
     if updateReason == INVENTORY_UPDATE_REASON_DURABILITY_CHANGE then return end
     -- note to self, if I wanted to track quest rewards they are conversations
-    if ignored_interaction_types[type_of_action] then 
+    if ignored_interaction_types[type_of_action] then
         targetName = WRONG_INTERACTION_TYPE
     end
     if ignored_tagets[targetName] then
@@ -360,7 +360,7 @@ function COOK.GetUnitPosition(tag)
     local subzone = GetMapName()
     local world = GetUnitZone(tag)
     textureName = LMP:GetZoneAndSubzone(true)
-    
+
     if textureName == "eyevea_base" then
         worldMapName = GetUnitZone("player")
         worldMapName = string.lower(worldMapName)
@@ -509,7 +509,7 @@ function COOK.VendorOpened()
     dataType = "vendor"
 
     local storeItems = {}
-    
+
     _, targetName, _, _, _, _, _, _ = GetGameCameraInteractableActionInfo()
 
     if COOK.VendLogCheck(dataType, { texturename }, x, y, 0.1, targetName) then
