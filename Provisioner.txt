@@ -3,7 +3,7 @@
 ## Version: 0.1.5
 ## APIVersion: 101033 101034
 ## SavedVariables: Provisioner_SavedVariables
-## DependsOn: LibMapPins-1.0>=10027
+## DependsOn: LibMapPins-1.0>=10036
 
 Provisioner.lua
 ProvisionerConstants.lua
