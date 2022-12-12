@@ -603,6 +603,7 @@ COOK.mapSystem = {
     ["craglorn/thaliasretreat_base"] = {"Zalgaz's Den"},
     ["alikr/zehtswatercavelower_base"] = {"Zehtswater Cave"},
     ["alikr/zehtswatercaveupper_base"] = {"Zehtswater Cave"},
+    ["skyrim/solitudecity_base"] = {"Solitude"},
 }
 
 -- COOK.DataStore.en.auridon.base
